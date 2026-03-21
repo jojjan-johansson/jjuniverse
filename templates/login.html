@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JJ Universe ✦ Tarot</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/login.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<div class="login-page">
+
+  <!-- Logga -->
+  <h1 class="logo">JJ Universe</h1>
+  <p class="tagline">Kortens visdom möter din intuition</p>
+
+  <!-- Om Tarot -->
+  <div class="tarot-about">
+    <p class="tarot-about-intro">
+      Tarot har använts i hundratals år som ett verktyg för självinsikt, reflektion och vägledning.
+      Varje kort bär på djupa symboler och arketyper som speglar det mänskliga livets alla facetter —
+      kärlek, förändring, styrka, mod och inre visdom.
+    </p>
+    <div class="tarot-pillars">
+      <div class="tarot-pillar">
+        <span class="tarot-pillar-icon">✦</span>
+        <strong>Självkännedom</strong>
+        <p>Korten hjälper dig att se mönster och sanningar som redan finns inom dig</p>
+      </div>
+      <div class="tarot-pillar">
+        <span class="tarot-pillar-icon">✦</span>
+        <strong>Vägledning</strong>
+        <p>Inte förutsägelse — utan ett stöd för att hitta klarhet i livets frågor</p>
+      </div>
+      <div class="tarot-pillar">
+        <span class="tarot-pillar-icon">✦</span>
+        <strong>Reflektion</strong>
+        <p>78 kort, 78 aspekter av livet — varje läsning är unik som du</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flash-meddelanden -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Formulär -->
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="showTab('login')">Logga in</button>
+      <button class="auth-tab" id="tab-register" onclick="showTab('register')">Skapa konto</button>
+    </div>
+
+    <!-- Inloggning -->
+    <form class="auth-form" id="form-login" method="POST" action="/login">
+      <input type="hidden" name="action" value="login">
+      <div class="auth-field">
+        <label>Användarnamn</label>
+        <input type="text" name="username" placeholder="Ditt användarnamn" required autocomplete="username">
+      </div>
+      <div class="auth-field">
+        <label>Lösenord</label>
+        <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn auth-submit">✦ Logga in</button>
+    </form>
+
+    <!-- Registrering -->
+    <form class="auth-form" id="form-register" method="POST" action="/register" style="display:none">
+      <input type="hidden" name="action" value="register">
+      <div class="auth-field">
+        <label>Välj användarnamn</label>
+        <input type="text" name="username" placeholder="Unikt användarnamn" required autocomplete="username" minlength="3" maxlength="30">
+      </div>
+      <div class="auth-field">
+        <label>Välj lösenord</label>
+        <input type="password" name="password" placeholder="Minst 6 tecken" required autocomplete="new-password" minlength="6">
+      </div>
+      <div class="auth-field">
+        <label>Upprepa lösenord</label>
+        <input type="password" name="password2" placeholder="••••••••" required autocomplete="new-password" minlength="6">
+      </div>
+      <button type="submit" class="btn auth-submit">✦ Skapa konto</button>
+    </form>
+  </div>
+
+  <p class="login-footer">Dina kortläsningar är privata och tillhör bara dig</p>
+
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+function showTab(tab) {
+  document.getElementById('form-login').style.display    = tab === 'login'    ? 'flex' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? 'flex' : 'none';
+  document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+}
+{% if show_register %}showTab('register');{% endif %}
+</script>
+</body>
+</html>

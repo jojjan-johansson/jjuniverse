@@ -1,0 +1,10 @@
+.env
+users.db
+venv/
+__pycache__/
+*.pyc
+*.pyo
+static/images/cards/
+static/images/mycards/
+nohup.out
+*.log

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JJ Universe ✦ Tarot</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<!-- ══════════════════════════════════════════════════
+     INTRO
+══════════════════════════════════════════════════ -->
+<section id="intro-section" class="section">
+  <div class="top-bar">
+    <span class="top-user">✦ {{ username }}</span>
+    <a href="/logout" class="top-logout">Logga ut</a>
+  </div>
+  <h1 class="logo">JJ Universe</h1>
+  <p class="tagline">Kortens visdom möter din intuition</p>
+
+  <div class="tarot-magic-text">
+    <p>Tarot är ett urgammalt verktyg för självinsikt och reflektion. Varje kort bär på arketypiska symboler som talar direkt till din inre visdom. Det handlar inte om att förutsäga framtiden — utan om att se mönster, förstå dig själv djupare och hitta klarhet i det som redan rör sig inom dig.</p>
+  </div>
+
+  <div class="spread-selector">
+    <button class="spread-btn" data-spread="single">
+      ⭐ En Fråga
+      <small>3 kort · en djup inblick</small>
+    </button>
+    <button class="spread-btn" data-spread="triple">
+      🌟 Tre Frågor
+      <small>9 kort · tre ämnen</small>
+    </button>
+    <button class="spread-btn" data-spread="year">
+      🌙 Årsstjärnan
+      <small>13 kort · hela ditt år</small>
+    </button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     FRÅGOR
+══════════════════════════════════════════════════ -->
+<section id="question-section" class="section" hidden>
+  <h2 class="section-title" id="question-section-title">Din Fråga</h2>
+
+  <div class="questions-container" id="questions-container"></div>
+
+  <div style="display:flex;gap:12px;margin-top:8px;">
+    <button class="btn btn-ghost" id="back-to-intro">← Tillbaka</button>
+    <button class="btn" id="to-spread-btn">Dra dina kort →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     KORTLÄGGNING
+══════════════════════════════════════════════════ -->
+<section id="spread-section" class="section" hidden>
+  <h2 class="section-title">Välj dina kort</h2>
+
+  <p class="progress-text" id="progress-text">Välj <span>3</span> kort</p>
+
+  <!-- Spread area — visar valda kort -->
+  <div class="spread-area" id="spread-layout" style="margin-bottom:48px;"></div>
+
+  <!-- Kortpool — välj härifrån -->
+  <div class="card-pool-wrapper">
+    <p class="card-pool-title">Lyssna på din intuition — välj de kort som lockar dig</p>
+    <div class="card-pool" id="card-pool"></div>
+  </div>
+
+  <button class="btn" id="reveal-btn" disabled>
+    ✦ Hämta dina svar ✦
+  </button>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     TOLKNING
+══════════════════════════════════════════════════ -->
+<section id="reading-section" class="section" hidden>
+  <div class="reading-container">
+
+    <div class="reading-header">
+      <div class="reading-orb"></div>
+      <h2 class="section-title" style="margin-bottom:0;">Din kortläsning</h2>
+    </div>
+
+    <div class="drawn-cards-summary" id="drawn-cards-summary"></div>
+
+    <div class="divider"></div>
+
+    <div class="reading-text" id="reading-text"></div>
+
+    <div class="divider"></div>
+
+    <!-- Följdfrågor -->
+    <div class="followup-section" id="followup-section">
+      <div class="followup-history" id="followup-history"></div>
+
+      <div class="followup-input-wrap" id="followup-input-wrap">
+        <p class="followup-counter" id="followup-counter">Du kan ställa upp till <span id="followup-remaining">10</span> följdfrågor</p>
+        <div class="followup-row">
+          <textarea class="followup-input" id="followup-input" rows="2" placeholder="Har du en följdfråga?"></textarea>
+          <button class="btn followup-btn" id="followup-btn">Fråga →</button>
+        </div>
+      </div>
+
+      <div class="followup-done" id="followup-done" hidden>
+        <p>Du har ställt alla dina följdfrågor för den här läsningen.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="text-center" style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn btn-ghost" id="card-followup-btn">🃏 Följdfråga med kort</button>
+      <button class="btn" id="new-reading-btn">✦ Ny läsning ✦</button>
+    </div>
+
+    <!-- Mini-läggning för följdfråga med kort -->
+    <div class="card-followup-panel" id="card-followup-panel" hidden>
+      <div class="divider"></div>
+      <h3 class="card-followup-title">Följdfråga med kort</h3>
+      <p class="card-followup-hint">Skriv din fråga och dra ett kort — kortet vägleder svaret</p>
+
+      <textarea class="followup-input" id="card-followup-input" rows="2"
+        placeholder="Vad vill du fördjupa dig i?"></textarea>
+
+      <div class="card-followup-draw" id="card-followup-draw">
+        <div class="card pool-card" id="card-followup-card">
+          <div class="card-inner">
+            <div class="card-back">
+              <div class="card-back-inner"><span class="card-back-star">✦</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="card-followup-draw-hint">Klicka på kortet för att dra det</p>
+      </div>
+
+      <button class="btn" id="card-followup-submit" disabled>Hämta svar →</button>
+    </div>
+
+  </div>
+</section>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
