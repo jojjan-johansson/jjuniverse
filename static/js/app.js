@@ -16,6 +16,7 @@ function initStars() {
   const canvas = document.getElementById('stars-canvas');
   const ctx = canvas.getContext('2d');
   let stars = [];
+  let shootingStars = [];
 
   // Zodiac constellations: name + star positions (relative 0-1) + connections
   const ZODIACS = [
@@ -105,16 +106,65 @@ function initStars() {
 
   function createStars() {
     stars = [];
-    for (let i = 0; i < 220; i++) {
+    for (let i = 0; i < 240; i++) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        r: Math.random() * 1.4 + 0.2,
+        r: Math.random() * 1.6 + 0.2,
         alpha: Math.random(),
         speed: Math.random() * 0.005 + 0.002,
         phase: Math.random() * Math.PI * 2,
+        zoomPhase: Math.random() * Math.PI * 2,
+        zoomSpeed: Math.random() * 0.006 + 0.002,
       });
     }
+  }
+
+  function spawnShootingStar() {
+    const fromLeft = Math.random() < 0.5;
+    shootingStars.push({
+      x: fromLeft ? Math.random() * canvas.width * 0.4 : canvas.width * 0.5 + Math.random() * canvas.width * 0.5,
+      y: Math.random() * canvas.height * 0.45,
+      vx: (fromLeft ? 1 : -1) * (Math.random() * 4 + 3),
+      vy: Math.random() * 2.5 + 1.5,
+      len: Math.random() * 90 + 70,
+      life: 1.0,
+    });
+  }
+
+  function drawShootingStars() {
+    shootingStars = shootingStars.filter(s => s.life > 0);
+    shootingStars.forEach(s => {
+      const tailLen = s.len * s.life;
+      const grad = ctx.createLinearGradient(
+        s.x, s.y,
+        s.x - s.vx * (tailLen / 4), s.y - s.vy * (tailLen / 4)
+      );
+      grad.addColorStop(0, `rgba(255,255,255,${s.life})`);
+      grad.addColorStop(0.4, `rgba(200,220,255,${s.life * 0.5})`);
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x - s.vx * (tailLen / 4), s.y - s.vy * (tailLen / 4));
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.8;
+      ctx.shadowColor = 'rgba(200,210,255,0.9)';
+      ctx.shadowBlur = 6;
+      ctx.stroke();
+      ctx.restore();
+
+      // Lysande huvud
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 2 * s.life, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${s.life})`;
+      ctx.fill();
+
+      s.x += s.vx;
+      s.y += s.vy;
+      s.life -= 0.018;
+    });
   }
 
   function drawMoon() {
@@ -177,15 +227,40 @@ function initStars() {
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const t = Date.now() / 1000;
+
+    // Chans för stjärnfall (~var 8:e sekund i snitt)
+    if (Math.random() < 0.002) spawnShootingStar();
+
     drawConstellations(t);
+    drawShootingStars();
     drawMoon();
+
     stars.forEach(s => {
-      const a = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * s.speed * 10 + s.phase));
+      // Blinkande alfa
+      const a = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(t * s.speed * 10 + s.phase));
+      // Zoom in / zoom ut — pulsar mjukt mellan 0.7x och 2.2x
+      const zoom = 0.7 + 1.5 * (0.5 + 0.5 * Math.sin(t * s.zoomSpeed * 10 + s.zoomPhase));
+      const radius = Math.max(0.5, s.r * zoom);
+
+      // Glödring runt stjärnan när den är stor
+      if (radius > 1.5) {
+        const gr = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, radius * 3);
+        gr.addColorStop(0, `rgba(255,255,255,${a * 0.55})`);
+        gr.addColorStop(0.5, `rgba(230,240,255,${a * 0.15})`);
+        gr.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, radius * 3, 0, Math.PI * 2);
+        ctx.fillStyle = gr;
+        ctx.fill();
+      }
+
+      // Vit kärna
       ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,240,255,${a * 0.9})`;
+      ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
       ctx.fill();
     });
+
     requestAnimationFrame(draw);
   }
 
@@ -195,6 +270,9 @@ function initStars() {
   buildConstellations();
   draw();
 }
+
+// Stjärnfältet startar alltid (login + app-sidan)
+initStars();
 
 // ── Fetch deck ─────────────────────────────────────────────────────────────
 async function loadDeck() {
@@ -245,10 +323,10 @@ function setupQuestions(type) {
 
   const title = document.getElementById('question-section-title');
   if (type === 'year') {
-    title.textContent = '🌙 Årsstjärnan';
+    title.textContent = 'Årsstjärnan';
     container.innerHTML = '<p style="text-align:center;color:var(--text-dim);font-style:italic;font-size:1.1rem;">Inget behöver sägas — universum känner ditt år.<br>Dra dina 13 kort och låt stjärnorna tala.</p>';
   } else {
-    title.textContent = type === 'single' ? '⭐ Din Fråga' : '🌟 Tre Frågor';
+    title.textContent = type === 'single' ? 'Din Fråga' : 'Tre Frågor';
     configs[type].forEach((cfg, i) => {
       const group = document.createElement('div');
       group.className = 'question-group';
@@ -260,7 +338,7 @@ function setupQuestions(type) {
   }
 }
 
-document.getElementById('to-spread-btn').addEventListener('click', () => {
+document.getElementById('to-spread-btn')?.addEventListener('click', () => {
   const inputs = document.querySelectorAll('.question-input');
   state.questions = [];
   if (state.spreadType !== 'year') {
@@ -278,7 +356,7 @@ document.getElementById('to-spread-btn').addEventListener('click', () => {
   showSection('spread-section');
 });
 
-document.getElementById('back-to-intro').addEventListener('click', () => {
+document.getElementById('back-to-intro')?.addEventListener('click', () => {
   showSection('intro-section');
   resetState();
 });
@@ -492,7 +570,7 @@ function placeCardInSpread(card, index) {
 }
 
 // ── Reveal reading ───────────────────────────────────────────────────────────
-document.getElementById('reveal-btn').addEventListener('click', async () => {
+document.getElementById('reveal-btn')?.addEventListener('click', async () => {
   buildDrawnSummary();
   showSection('reading-section');
   await streamReading();
@@ -501,11 +579,30 @@ document.getElementById('reveal-btn').addEventListener('click', async () => {
 function buildDrawnSummary() {
   const container = document.getElementById('drawn-cards-summary');
   container.innerHTML = '';
-  state.selectedCards.forEach(c => {
-    const chip = document.createElement('div');
-    chip.className = 'drawn-card-chip' + (c.reversed ? ' reversed' : '');
-    chip.textContent = c.name_sv + (c.reversed ? ' ↓' : '');
-    container.appendChild(chip);
+
+  state.selectedCards.forEach((c, i) => {
+    const posLabel = state.positions[i]?.label || '';
+    const wrap = document.createElement('div');
+    wrap.className = 'reading-card-wrap';
+
+    const imgEl = document.createElement('img');
+    imgEl.src = `/static/images/cards/${c.image}`;
+    imgEl.alt = c.name_sv;
+    imgEl.className = 'reading-card-img' + (c.reversed ? ' reversed' : '');
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'reading-card-name';
+    nameEl.textContent = c.name_sv + (c.reversed ? ' ↓' : '');
+
+    if (posLabel) {
+      const posEl = document.createElement('div');
+      posEl.className = 'reading-card-pos';
+      posEl.textContent = posLabel;
+      wrap.appendChild(posEl);
+    }
+    wrap.appendChild(imgEl);
+    wrap.appendChild(nameEl);
+    container.appendChild(wrap);
   });
 }
 
@@ -593,8 +690,8 @@ function updateFollowupCounter() {
   document.getElementById('followup-remaining').textContent = remaining;
 }
 
-document.getElementById('followup-btn').addEventListener('click', sendFollowup);
-document.getElementById('followup-input').addEventListener('keydown', e => {
+document.getElementById('followup-btn')?.addEventListener('click', sendFollowup);
+document.getElementById('followup-input')?.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFollowup(); }
 });
 
@@ -696,7 +793,7 @@ function formatReadingText(text) {
 let cardFollowupDrawnCard = null;
 let cardFollowupReady = false;
 
-document.getElementById('card-followup-btn').addEventListener('click', () => {
+document.getElementById('card-followup-btn')?.addEventListener('click', () => {
   const panel = document.getElementById('card-followup-panel');
   panel.hidden = !panel.hidden;
   if (!panel.hidden) {
@@ -762,7 +859,7 @@ function drawCardFollowup() {
   checkCardFollowupReady();
 }
 
-document.getElementById('card-followup-input').addEventListener('input', checkCardFollowupReady);
+document.getElementById('card-followup-input')?.addEventListener('input', checkCardFollowupReady);
 
 function checkCardFollowupReady() {
   const q = document.getElementById('card-followup-input').value.trim();
@@ -770,7 +867,7 @@ function checkCardFollowupReady() {
   document.getElementById('card-followup-submit').disabled = !ready;
 }
 
-document.getElementById('card-followup-submit').addEventListener('click', async () => {
+document.getElementById('card-followup-submit')?.addEventListener('click', async () => {
   const q = document.getElementById('card-followup-input').value.trim();
   if (!q || !cardFollowupDrawnCard) return;
 
@@ -840,7 +937,7 @@ document.getElementById('card-followup-submit').addEventListener('click', async 
 });
 
 // ── New reading button ───────────────────────────────────────────────────────
-document.getElementById('new-reading-btn').addEventListener('click', () => {
+document.getElementById('new-reading-btn')?.addEventListener('click', () => {
   resetState();
   showSection('intro-section');
 });
@@ -853,5 +950,7 @@ function resetState() {
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
-initStars();
-loadDeck();
+// initStars() körs redan tidigt — se ovan
+if (document.getElementById('intro-section')) {
+  loadDeck();
+}

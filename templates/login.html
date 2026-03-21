@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/static/css/login.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;1,400&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -41,10 +41,46 @@
       <div class="tarot-pillar">
         <span class="tarot-pillar-icon">✦</span>
         <strong>Reflektion</strong>
-        <p>78 kort, 78 aspekter av livet — varje läsning är unik som du</p>
+        <p>Din själ känner vägen — stjärnorna visar vart du redan är på väg</p>
       </div>
     </div>
   </div>
+
+  <!-- ── Gratis dagskort ── -->
+  <div class="free-card-section">
+    <p class="free-card-intro">Dra ditt kort för dagen — helt gratis</p>
+
+    <div class="free-card-area" id="free-card-area">
+      <!-- Kortbaksidan -->
+      <div class="free-card-wrap" id="free-card-wrap">
+        <div class="free-card" id="free-card">
+          <div class="free-card-inner">
+            <div class="free-card-back">
+              <div class="free-card-back-inner"><span class="free-card-star">✦</span></div>
+            </div>
+            <div class="free-card-front">
+              <img id="free-card-img" src="" alt="">
+            </div>
+          </div>
+        </div>
+        <p class="free-card-name" id="free-card-name"></p>
+      </div>
+
+      <button class="btn free-card-btn" id="free-card-btn" onclick="drawFreeCard()">
+        ✦ Dra ditt kort
+      </button>
+
+      <div class="free-card-reading" id="free-card-reading" hidden>
+        <p class="free-card-text" id="free-card-text"></p>
+        <p class="free-card-cta">
+          Vill du ha en fullständig läsning?
+          <a href="#" onclick="document.getElementById('tab-login').click(); document.getElementById('auth-anchor').scrollIntoView({behavior:'smooth'}); return false;">Logga in eller skapa ett konto</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="auth-anchor"></div>
 
   <!-- Flash-meddelanden -->
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -108,6 +144,53 @@ function showTab(tab) {
   document.getElementById('tab-register').classList.toggle('active', tab === 'register');
 }
 {% if show_register %}showTab('register');{% endif %}
+
+let freeCardDrawn = false;
+
+async function drawFreeCard() {
+  if (freeCardDrawn) return;
+  freeCardDrawn = true;
+
+  const btn = document.getElementById('free-card-btn');
+  btn.disabled = true;
+  btn.textContent = '✦ Väntar på stjärnorna…';
+
+  const es = new EventSource('/api/free-card');
+  let card = null;
+  let textEl = document.getElementById('free-card-text');
+  let fullText = '';
+
+  es.onmessage = (e) => {
+    if (e.data === '[DONE]') {
+      es.close();
+      document.getElementById('free-card-reading').hidden = false;
+      btn.style.display = 'none';
+      return;
+    }
+    try {
+      const d = JSON.parse(e.data);
+      if (d.error === 'limit') {
+        es.close();
+        btn.textContent = '✦ Du har redan dragit ditt kort idag';
+        btn.disabled = true;
+        return;
+      } else if (d.card) {
+        card = d.card;
+        const img = document.getElementById('free-card-img');
+        img.src = `/static/images/cards/${card.image}`;
+        img.alt = card.name_sv;
+        const cardEl = document.getElementById('free-card');
+        if (card.reversed) cardEl.classList.add('reversed');
+        setTimeout(() => cardEl.classList.add('flipped'), 100);
+        const nameEl = document.getElementById('free-card-name');
+        nameEl.textContent = card.name_sv + (card.reversed ? ' ↓' : '');
+      } else if (d.text) {
+        fullText += d.text;
+        textEl.textContent = fullText;
+      }
+    } catch {}
+  };
+}
 </script>
 </body>
 </html>

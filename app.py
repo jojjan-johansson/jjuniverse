@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import anthropic
 from cards import TAROT_CARDS
-from database import init_db, get_db
+from database import init_db, get_db, can_draw_free_card, record_free_card_draw
 
 load_dotenv()
 
@@ -157,6 +157,59 @@ def logout():
 
 
 # ── App routes (kräver inloggning) ───────────────────────────────────────────
+@app.route("/api/free-card")
+def free_card():
+    """Öppen endpoint — inget inlogg krävs. Max ett drag per IP och dygn."""
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+
+    if not can_draw_free_card(ip):
+        def blocked():
+            yield f"data: {json.dumps({'error': 'limit'})}\n\n"
+        return Response(stream_with_context(blocked()), mimetype="text/event-stream",
+                        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    record_free_card_draw(ip)
+
+    import random as _r
+    card = _r.choice(TAROT_CARDS).copy()
+    card["reversed"] = _r.random() < 0.3
+
+    rev_text = " [OMVÄND]" if card["reversed"] else ""
+    prompt = (
+        f"Kortet som dragits är: {card['name_sv']} ({card['name']}){rev_text}.\n\n"
+        "Ge en kort, varm och spirituell tolkning på exakt 2 meningar. "
+        "Tala direkt till personen med 'du'. Inga rubriker, ingen ✦ Råd-rad — bara två meningar som väcker nyfikenhet och inre igenkänning."
+    )
+
+    FREE_PROMPT = (
+        "Du är JJ Universe — en varm och spirituell guide. "
+        "Svara alltid på svenska. Håll dig till exakt 2 meningar. "
+        "Nämn aldrig döden, mörker eller skrämmande saker. "
+        "Döden-kortet = förändring. Var poetisk men jordnära."
+    )
+
+    def generate():
+        yield f"data: {json.dumps({'card': card})}\n\n"
+        try:
+            with client.messages.stream(
+                model="claude-haiku-4-5",
+                max_tokens=120,
+                system=FREE_PROMPT,
+                messages=[{"role": "user", "content": prompt}]
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
+
 @app.route("/")
 @login_required
 def index():

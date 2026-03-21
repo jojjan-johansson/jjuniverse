@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&family=Dancing+Script:wght@500;600&display=swap');
 
 :root {
   --bg:            #07000f;
@@ -6,12 +6,12 @@
   --purple-deep:   #1a0040;
   --purple:        #5b00a8;
   --purple-bright: #9b30ff;
-  --gold:          #d4af37;
-  --gold-light:    #f5d060;
+  --gold:          #ffffff;
+  --gold-light:    #ede8ff;
   --text:          #ede0ff;
   --text-dim:      #9980bb;
   --glow-purple:   rgba(155, 48, 255, 0.55);
-  --glow-gold:     rgba(212, 175, 55, 0.45);
+  --glow-gold:     rgba(255, 255, 255, 0.35);
   --card-w:        110px;
   --card-h:        185px;
 }
@@ -153,10 +153,11 @@ body {
 
 .spread-btn {
   background: linear-gradient(145deg, var(--purple-deep), #2a005a);
-  border: 1px solid var(--gold);
-  color: var(--text);
-  font-family: 'Cinzel', serif;
-  font-size: 1rem;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #ffffff;
+  font-family: 'Dancing Script', cursive;
+  font-size: 1.3rem;
+  font-weight: 600;
   padding: 24px 32px;
   border-radius: 12px;
   cursor: pointer;
@@ -228,11 +229,12 @@ body {
 .section-title {
   font-family: 'Cinzel', serif;
   font-size: 1.5rem;
-  color: var(--gold);
+  font-weight: 600;
+  color: #ffffff;
   text-align: center;
   margin-bottom: 32px;
   letter-spacing: 0.1em;
-  text-shadow: 0 0 20px var(--glow-gold);
+  text-shadow: 0 0 18px rgba(255,255,255,0.35), 0 0 40px rgba(180,120,255,0.25);
 }
 
 /* ── Question inputs ── */
@@ -252,14 +254,15 @@ body {
 
 .question-group label {
   font-family: 'Cinzel', serif;
-  font-size: 0.85rem;
-  color: var(--gold);
-  letter-spacing: 0.12em;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.1em;
 }
 
 .question-input {
   background: rgba(26, 0, 64, 0.6);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: var(--text);
   font-family: 'Crimson Text', serif;
@@ -271,8 +274,8 @@ body {
 }
 
 .question-input:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 15px rgba(212,175,55,0.2);
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 0 15px rgba(255,255,255,0.12);
 }
 
 .question-input::placeholder { color: var(--text-dim); font-style: italic; }
@@ -357,7 +360,7 @@ body {
 /* Card back — dark mystical CSS design */
 .card-back {
   background: linear-gradient(135deg, #0d0028 0%, #1a0050 50%, #0d0028 100%);
-  border: 1px solid rgba(212,175,55,0.5);
+  border: 1px solid rgba(255,255,255,0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -366,7 +369,7 @@ body {
 .card-back-inner {
   width: 88%;
   height: 88%;
-  border: 1px solid rgba(212,175,55,0.35);
+  border: 1px solid rgba(255,255,255,0.18);
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -380,7 +383,7 @@ body {
   position: absolute;
   inset: 0;
   background:
-    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(212,175,55,0.04) 8px, rgba(212,175,55,0.04) 9px),
+    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.03) 8px, rgba(255,255,255,0.03) 9px),
     repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(91,0,168,0.06) 8px, rgba(91,0,168,0.06) 9px);
 }
 
@@ -401,7 +404,7 @@ body {
 .card-front {
   transform: rotateY(180deg);
   background: #0a0018;
-  border: 1px solid rgba(212,175,55,0.4);
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
 .card-front img {
@@ -480,12 +483,12 @@ body {
 .slot-placeholder {
   width: var(--card-w);
   height: var(--card-h);
-  border: 1px dashed rgba(212,175,55,0.25);
+  border: 1px dashed rgba(255,255,255,0.18);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(212,175,55,0.2);
+  color: rgba(255,255,255,0.15);
   font-size: 1.5rem;
 }
 
@@ -511,7 +514,7 @@ body {
   color: var(--text-dim);
   text-align: center;
   max-width: 500px;
-  border-bottom: 1px solid rgba(212,175,55,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
   padding-bottom: 10px;
   width: 100%;
 }
@@ -701,11 +704,12 @@ body {
 }
 
 .card-followup-title {
-  font-family: 'Cinzel', serif;
-  font-size: 1.1rem;
-  color: var(--gold);
-  letter-spacing: 0.1em;
+  font-family: 'Dancing Script', cursive;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ffffff;
   text-align: center;
+  text-shadow: 0 0 12px rgba(255,255,255,0.3);
 }
 
 .card-followup-hint {
@@ -743,14 +747,16 @@ body {
   display: block;
   margin-top: 28px;
   padding: 18px 24px;
-  background: linear-gradient(135deg, rgba(212,175,55,0.12), rgba(155,48,255,0.12));
-  border: 1px solid rgba(212,175,55,0.4);
+  background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(155,48,255,0.12));
+  border: 1px solid rgba(255,255,255,0.25);
   border-radius: 12px;
-  color: var(--gold-light);
-  font-size: 1.15rem;
-  font-style: italic;
-  line-height: 1.7;
-  text-shadow: 0 0 12px rgba(212,175,55,0.4);
+  color: #ffffff;
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.85;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 14px rgba(255,255,255,0.25), 0 0 30px rgba(180,120,255,0.2);
 }
 
 .reading-text .cursor {
@@ -776,23 +782,59 @@ body {
 .drawn-cards-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 20px;
   justify-content: center;
   margin-bottom: 40px;
 }
 
-.drawn-card-chip {
-  background: rgba(26,0,64,0.6);
-  border: 1px solid rgba(212,175,55,0.3);
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-family: 'Cinzel', serif;
-  font-size: 0.7rem;
-  color: var(--text-dim);
-  letter-spacing: 0.06em;
+.reading-card-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.6s ease;
 }
 
-.drawn-card-chip.reversed { border-color: rgba(192,112,255,0.4); color: #c070ff; }
+.reading-card-pos {
+  font-family: 'Dancing Script', cursive;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.03em;
+}
+
+.reading-card-img {
+  width: 80px;
+  height: 135px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 0 16px rgba(155,48,255,0.35), 0 4px 12px rgba(0,0,0,0.5);
+  filter: saturate(0.85) brightness(0.9);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.reading-card-img:hover {
+  transform: scale(1.08) translateY(-4px);
+  box-shadow: 0 0 28px rgba(155,48,255,0.6), 0 8px 20px rgba(0,0,0,0.6);
+}
+
+.reading-card-img.reversed {
+  transform: rotate(180deg);
+}
+
+.reading-card-img.reversed:hover {
+  transform: rotate(180deg) scale(1.08) translateY(4px);
+}
+
+.reading-card-name {
+  font-family: 'Dancing Script', cursive;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  max-width: 90px;
+  line-height: 1.2;
+}
 
 /* ── Utility ── */
 [hidden] { display: none !important; }
