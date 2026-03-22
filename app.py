@@ -49,6 +49,14 @@ Viktiga regler:
 - Avsluta ALLTID med ett konkret, kärleksfullt råd under en egen rad som börjar med: ✦ Råd:"""
 
 
+# ── Hjälpfunktion: döden-varning ─────────────────────────────────────────────
+def death_note(cards):
+    """Returnerar en extra instruktion om Döden-kortet finns bland korten."""
+    if any(c['name'] == 'Death' for c in cards):
+        return "\n\nVIKTIGT: Döden-kortet finns med i denna läsning. Börja ALLTID tolkningen av det kortet med att lugnt förklara att Döden i tarot inte handlar om fysisk död — det är ett kort om förändring, avslut och nya början. Säg det tydligt och kärleksfullt så att personen inte känner oro."
+    return ""
+
+
 # ── Prompt-byggare ───────────────────────────────────────────────────────────
 def build_single_prompt(question, cards):
     c = cards
@@ -59,7 +67,7 @@ De tre korten som dragits:
 2. KÄRNAN — {c[1]['name_sv']} ({c[1]['name']}){' [OMVÄND]' if c[1]['reversed'] else ''}
 3. VÄGEN FRAMÅT — {c[2]['name_sv']} ({c[2]['name']}){' [OMVÄND]' if c[2]['reversed'] else ''}
 
-Ge en sammanhängande, personlig och varm tolkning av dessa tre kort i relation till frågan. Se korten som ett helhetligt budskap — vad de tillsammans säger om situationen och vad som öppnar sig. Avsluta med ett konkret råd på en egen rad som börjar med: ✦ Råd:"""
+Ge en sammanhängande, personlig och varm tolkning av dessa tre kort i relation till frågan. Se korten som ett helhetligt budskap — vad de tillsammans säger om situationen och vad som öppnar sig. Avsluta med ett konkret råd på en egen rad som börjar med: ✦ Råd:{death_note(cards)}"""
 
 
 def build_triple_prompt(questions, cards):
@@ -74,6 +82,7 @@ Kort dragna:
 
 """
     prompt += "Tolka varje fråga som ett helhetligt budskap. Avsluta varje fråga med ett kort, kärleksfullt råd på en egen rad som börjar med: ✦ Råd: — och lägg sedan till ett övergripande råd för alla tre frågor tillsammans på slutet."
+    prompt += death_note(cards)
     return prompt
 
 
@@ -89,6 +98,7 @@ def build_year_prompt(cards):
     center = cards[12]
     prompt += f"\nÅRETS TEMA (mittkortet): {center['name_sv']}{' [OMVÄND]' if center['reversed'] else ''}\n\n"
     prompt += "Ge en helårsläsning. Berätta kort om varje månads energi (1-2 meningar per månad — alltid positiv och upplyftande). Avsluta med en djupare tolkning av mittkortet som årets tema, och lägg till ett konkret råd för hela året på en egen rad som börjar med: ✦ Råd:"
+    prompt += death_note(cards)
     return prompt
 
 

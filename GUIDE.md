@@ -55,6 +55,28 @@ SECRET_KEY=...                   # Slumpmässig sträng för Flask-sessioner
 
 > **.env får aldrig läggas i Git.** Den är listad i `.gitignore`.
 
+### ⚠️ Skriva .env på servern — gör SÅ HÄR
+
+API-nyckeln är lång och **får inte kopieras direkt i terminalen** — radbrytningar förstör filen.
+Dela upp nyckeln i kortare delar och sätt ihop med bash-variabler:
+
+```bash
+# Dela upp API-nyckeln i bitar (justera delarna efter din nyckel)
+P1='sk-ant-api03-FÖRSTA_DELEN'
+P2='ANDRA_DELEN'
+P3='TREDJE_DELEN'
+SK='din-secret-key-här'
+{ echo "ANTHROPIC_API_KEY=${P1}${P2}${P3}"; echo "SECRET_KEY=${SK}"; } > ~/apps/jjuniverse/.env
+
+# Verifiera att filen ser rätt ut ($ = radbrytning, ska vara EN rad per variabel)
+cat -A ~/apps/jjuniverse/.env
+```
+
+Om filen är trasig syns det med `python-dotenv could not parse statement` i loggarna:
+```bash
+sudo journalctl -u jjuniverse --no-pager | tail -20
+```
+
 ---
 
 ## Kortfilnamn
@@ -170,69 +192,58 @@ python3 app.py
 
 ---
 
-## Produktion (Loopia VPS)
+## Produktion (Loopia VPS — jjuniverse.se)
 
-### 1. Installera
-```bash
-sudo apt update && sudo apt install python3-pip python3-venv nginx
-git clone https://github.com/DITT_NAMN/jjuniverse.git /var/www/jjuniverse
-cd /var/www/jjuniverse
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+**Server:** Ubuntu 24.04, Loopia VPS
+**Domän:** jjuniverse.se → 213.188.153.93
+**Reverse proxy:** Caddy (sköter HTTPS automatiskt)
+**App-port:** 5001
+
+### Sökvägar på servern
+```
+/home/johanna/apps/jjuniverse/   # App-katalog
+/etc/caddy/Caddyfile             # Caddy-konfiguration
+/etc/systemd/system/jjuniverse.service
 ```
 
-### 2. Skapa .env på servern
+### Driftsätta en uppdatering
 ```bash
-nano /var/www/jjuniverse/.env
+cd ~/apps/jjuniverse
+git pull
+sudo systemctl restart jjuniverse
+sudo systemctl status jjuniverse
 ```
 
-### 3. Gunicorn systemd-tjänst
-```bash
-sudo nano /etc/systemd/system/jjuniverse.service
-```
+### Systemd-tjänst (`/etc/systemd/system/jjuniverse.service`)
 ```ini
 [Unit]
-Description=JJ Universe Tarot App
+Description=JJ Universe Tarot
 After=network.target
 
 [Service]
-User=www-data
-WorkingDirectory=/var/www/jjuniverse
-Environment="PATH=/var/www/jjuniverse/venv/bin"
-ExecStart=/var/www/jjuniverse/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:5000 app:app
+User=johanna
+WorkingDirectory=/home/johanna/apps/jjuniverse
+Environment=PATH=/home/johanna/apps/jjuniverse/venv/bin
+ExecStart=/home/johanna/apps/jjuniverse/venv/bin/gunicorn -w 2 -b 127.0.0.1:5001 app:app
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 ```
-```bash
-sudo systemctl enable jjuniverse && sudo systemctl start jjuniverse
+
+### Caddy (`/etc/caddy/Caddyfile`)
 ```
-
-### 4. Nginx
-```nginx
-server {
-    listen 80;
-    server_name din-domän.se;
-
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_buffering off;
-        proxy_cache off;
-    }
-
-    location /static {
-        alias /var/www/jjuniverse/static;
-    }
+jjuniverse.se {
+    reverse_proxy 127.0.0.1:5001
 }
 ```
-
-### 5. HTTPS (gratis)
+Caddy sköter HTTPS/SSL automatiskt. Starta om Caddy efter ändringar:
 ```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d din-domän.se
+sudo systemctl reload caddy
 ```
+
+### Skapa .env på servern (se avsnitt ovan om .env)
 
 ---
 
@@ -244,9 +255,11 @@ users.db
 venv/
 __pycache__/
 *.pyc
-static/images/cards/
-static/images/mycards/
+*.log
+nohup.out
 ```
+
+> Kortbilderna (`static/images/cards/` och `static/images/mycards/`) **är med i Git** för säker backup.
 
 ---
 

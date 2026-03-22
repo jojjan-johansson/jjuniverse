@@ -333,8 +333,8 @@ body {
   transition: transform 0.2s ease;
 }
 
-.card:hover .card-inner { box-shadow: 0 0 20px var(--glow-purple), 0 0 40px rgba(91,0,168,0.4); }
-.card:hover { transform: translateY(-8px) scale(1.05); }
+.card:hover .card-inner { box-shadow: 0 0 28px var(--glow-purple), 0 0 55px rgba(91,0,168,0.5); }
+.card:hover { transform: translateY(-14px) scale(1.12); }
 
 .card-inner {
   width: 100%;
@@ -444,7 +444,7 @@ body {
 /* Pool card — synlig storlek med hover-effekt */
 .card.pool-card { width: 88px; height: 148px; }
 .card.pool-card .card-back-star { font-size: 1.6rem; }
-.card.pool-card:hover { transform: translateY(-12px) scale(1.08); z-index: 10; }
+.card.pool-card:hover { transform: translateY(-18px) scale(1.14); z-index: 10; }
 .card.pool-card .card-inner {
   box-shadow: 0 4px 20px rgba(0,0,0,0.8), 0 0 12px rgba(155,48,255,0.4);
 }
@@ -854,3 +854,43 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg2); }
 ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 3px; }
+
+/* ── Ambient-knapp ── */
+#ambient-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(155, 48, 255, 0.35);
+  background: rgba(13, 0, 32, 0.75);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s, box-shadow 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(91, 0, 168, 0.15);
+}
+
+#ambient-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(155, 48, 255, 0.6);
+  box-shadow: 0 0 20px rgba(155, 48, 255, 0.3);
+}
+
+#ambient-btn.ambient-on {
+  color: #ffffff;
+  border-color: var(--purple-bright);
+  box-shadow: 0 0 18px rgba(155, 48, 255, 0.5), 0 0 35px rgba(155, 48, 255, 0.2);
+  animation: ambientPulse 3s ease-in-out infinite;
+}
+
+@keyframes ambientPulse {
+  0%, 100% { box-shadow: 0 0 18px rgba(155,48,255,0.5), 0 0 35px rgba(155,48,255,0.2); }
+  50%       { box-shadow: 0 0 26px rgba(155,48,255,0.7), 0 0 50px rgba(155,48,255,0.3); }
+}
