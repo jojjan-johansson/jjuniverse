@@ -212,8 +212,8 @@ body {
 }
 
 .btn-ghost {
-  border-color: var(--text-dim);
-  color: var(--text-dim);
+  border-color: var(--gold);
+  color: var(--gold);
   font-size: 0.85rem;
   padding: 10px 24px;
 }
