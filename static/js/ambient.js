@@ -37,6 +37,7 @@
           ready = true;
           player.setVolume(55);
           if (pendingPlay) doPlay();
+          document.getElementById('ambient-panel').classList.add('ambient-api-ready');
         },
       },
     });
@@ -46,24 +47,29 @@
     player.playVideo();
     playing     = true;
     pendingPlay = false;
-    btn.classList.add('ambient-on');
+    document.getElementById('ambient-panel').classList.add('ambient-on');
     btn.setAttribute('aria-label', 'Bakgrundsljud på');
   }
 
   function doStop() {
     player.pauseVideo();
     playing = false;
-    btn.classList.remove('ambient-on');
+    document.getElementById('ambient-panel').classList.remove('ambient-on');
     btn.setAttribute('aria-label', 'Bakgrundsljud av');
   }
 
-  /* Knapp */
-  const btn = document.createElement('button');
-  btn.id        = 'ambient-btn';
-  btn.title     = 'Sätt på/stäng av bakgrundsljud';
-  btn.innerHTML = '♪';
-  btn.setAttribute('aria-label', 'Bakgrundsljud av');
-  document.body.appendChild(btn);
+  /* Ruta med knapp och text */
+  const panel = document.createElement('div');
+  panel.id = 'ambient-panel';
+  panel.innerHTML = `
+    <button id="ambient-btn" aria-label="Bakgrundsljud av">♪</button>
+    <div class="ambient-text">
+      <span class="ambient-title">Spirituell musik</span>
+      <span class="ambient-sub">Tryck på ♪ för att öppna ett rum av ro.<br>Låt tonerna bära dig — i meditation,<br>i heling, eller bara i varats stillhet.</span>
+    </div>
+  `;
+  document.body.appendChild(panel);
+  const btn = document.getElementById('ambient-btn');
 
   btn.addEventListener('click', function () {
     if (playing) {

@@ -671,7 +671,7 @@ function escapeHtml(str) {
 }
 
 // ── Följdfrågor ─────────────────────────────────────────────────────────────
-const MAX_FOLLOWUPS = 10;
+const MAX_FOLLOWUPS = 3;
 let followupCount = 0;
 let followupHistory = [];  // [{role:'user'|'assistant', content:string}]
 
