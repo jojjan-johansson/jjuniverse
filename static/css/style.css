@@ -628,6 +628,21 @@ body {
   margin-bottom: 24px;
 }
 
+.followup-card-snapshot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.followup-card-name {
+  font-family: 'Dancing Script', cursive;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .followup-q {
   background: rgba(155, 48, 255, 0.1);
   border-left: 3px solid var(--purple-bright);

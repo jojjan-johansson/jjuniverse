@@ -885,9 +885,24 @@ document.getElementById('card-followup-submit')?.addEventListener('click', async
 
   const history = document.getElementById('followup-history');
 
+  // Visa kortet i historiken så det stannar kvar
+  const cardSnapshot = document.createElement('div');
+  cardSnapshot.className = 'followup-card-snapshot';
+  cardSnapshot.innerHTML = `
+    <div class="card flipped${card.reversed ? ' reversed' : ''}" style="width:72px;height:121px;pointer-events:none;">
+      <div class="card-inner">
+        <div class="card-back"><div class="card-back-inner"><span class="card-back-star">✦</span></div></div>
+        <div class="card-front">
+          <img src="/static/images/cards/${card.image}" alt="${card.name_sv}" onload="this.classList.add('loaded')">
+        </div>
+      </div>
+    </div>
+    <span class="followup-card-name">${card.name_sv}${card.reversed ? ' ↓' : ''}</span>`;
+  history.appendChild(cardSnapshot);
+
   const qEl = document.createElement('div');
   qEl.className = 'followup-q';
-  qEl.innerHTML = `${escapeHtml(q)} <em style="color:var(--gold);font-size:0.9em">· ${escapeHtml(cardDesc)}</em>`;
+  qEl.innerHTML = `${escapeHtml(q)}`;
   history.appendChild(qEl);
 
   const aEl = document.createElement('div');
