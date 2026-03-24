@@ -566,7 +566,13 @@ function placeCardInSpread(card, index) {
   slotEl.replaceWith(cardEl);
 
   // Flip after a short delay
-  setTimeout(() => cardEl.classList.add('flipped'), 300);
+  setTimeout(() => {
+    cardEl.classList.add('flipped');
+    // Klickbar för förstoring efter att kortet vänts
+    const posLabel = state.positions[index]?.label || '';
+    cardEl.addEventListener('click', () => openCardModal(card, posLabel));
+    cardEl.title = 'Klicka för att förstora';
+  }, 300);
 }
 
 // ── Reveal reading ───────────────────────────────────────────────────────────
@@ -602,6 +608,9 @@ function buildDrawnSummary() {
     }
     wrap.appendChild(imgEl);
     wrap.appendChild(nameEl);
+    wrap.style.cursor = 'pointer';
+    wrap.title = 'Klicka för att förstora';
+    wrap.addEventListener('click', () => openCardModal(c, posLabel));
     container.appendChild(wrap);
   });
 }
@@ -851,7 +860,11 @@ function drawCardFollowup() {
     </div>`;
   cardEl.onclick = null;
 
-  setTimeout(() => cardEl.classList.add('flipped'), 100);
+  setTimeout(() => {
+    cardEl.classList.add('flipped');
+    cardEl.addEventListener('click', () => openCardModal(card, ''));
+    cardEl.title = 'Klicka för att förstora';
+  }, 100);
 
   document.querySelector('.card-followup-draw-hint').textContent =
     card.name_sv + (card.reversed ? ' (omvänd)' : '');
@@ -963,6 +976,98 @@ function resetState() {
   state.selectedCards = [];
   document.querySelectorAll('.spread-btn').forEach(b => b.classList.remove('active'));
 }
+
+// ── Kort-modal ────────────────────────────────────────────────────────────────
+function openCardModal(card, posLabel) {
+  const modal   = document.getElementById('card-modal');
+  const imgEl   = document.getElementById('card-modal-img');
+  const nameEl  = document.getElementById('card-modal-name');
+  const posEl   = document.getElementById('card-modal-pos');
+  const revEl   = document.getElementById('card-modal-reversed');
+
+  imgEl.src = `/static/images/cards/${card.image}`;
+  imgEl.alt = card.name_sv;
+  imgEl.className = 'card-modal-img' + (card.reversed ? ' reversed' : '');
+  nameEl.textContent = card.name_sv;
+  posEl.textContent  = posLabel || '';
+  revEl.textContent  = card.reversed ? 'omvänd' : '';
+
+  modal.hidden = false;
+}
+
+function closeCardModal() {
+  document.getElementById('card-modal').hidden = true;
+}
+
+document.getElementById('card-modal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeCardModal();
+});
+document.getElementById('card-modal-close')?.addEventListener('click', closeCardModal);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeCardModal();
+});
+
+// ── Cookie-banner ─────────────────────────────────────────────────────────────
+function acceptCookies() {
+  localStorage.setItem('cookies_accepted', '1');
+  document.getElementById('cookie-banner')?.classList.add('hidden');
+}
+if (localStorage.getItem('cookies_accepted')) {
+  document.getElementById('cookie-banner')?.classList.add('hidden');
+}
+
+// ── Skicka läsning till mail ──────────────────────────────────────────────────
+document.getElementById('send-email-btn')?.addEventListener('click', () => {
+  const panel = document.getElementById('send-email-panel');
+  panel.hidden = !panel.hidden;
+});
+
+document.getElementById('send-email-submit')?.addEventListener('click', async () => {
+  const email  = document.getElementById('send-email-input').value.trim();
+  const status = document.getElementById('send-email-status');
+  if (!email) { status.textContent = 'Ange en e-postadress.'; return; }
+
+  status.textContent = 'Skickar…';
+
+  // Samla ihop all data från den aktuella läsningen
+  const readingText = document.getElementById('reading-text')?.innerText || '';
+  const followups = [];
+  document.querySelectorAll('.followup-q').forEach((qEl, i) => {
+    const aEl = document.querySelectorAll('.followup-a')[i];
+    followups.push({ q: qEl.innerText, a: aEl?.innerText || '' });
+  });
+
+  const cards = state.selectedCards.map((c, i) => ({
+    name_sv: c.name_sv,
+    reversed: c.reversed,
+    position: state.positions[i]?.label || ''
+  }));
+
+  try {
+    const res = await fetch('/api/send-reading', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        spread_type: state.spreadType,
+        cards,
+        reading_text: readingText,
+        followups
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      status.style.color = '#9b30ff';
+      status.textContent = '✦ Läsningen har skickats till ' + email;
+    } else {
+      status.style.color = '#ff9090';
+      status.textContent = 'Något gick fel. Försök igen.';
+    }
+  } catch {
+    status.style.color = '#ff9090';
+    status.textContent = 'Något gick fel. Försök igen.';
+  }
+});
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 // initStars() körs redan tidigt — se ovan

@@ -194,5 +194,31 @@ async function drawFreeCard() {
   };
 }
 </script>
+
+<div class="cookie-banner" id="cookie-banner">
+  <p>Vi använder nödvändiga cookies för inloggning och säkerhet. Inga spårningscookies.
+    <a href="/privacy">Integritetspolicy</a></p>
+  <button onclick="acceptCookies()">Okej</button>
+</div>
+
+<footer class="site-footer">
+  <a href="/terms">Användarvillkor</a>
+  <span>·</span>
+  <a href="/privacy">Integritetspolicy</a>
+  <span>·</span>
+  <a href="/payment-terms">Betalningsvillkor</a>
+  <span>·</span>
+  <a href="mailto:jjuniverse.support@gmail.com">Support</a>
+</footer>
+
+<script>
+function acceptCookies() {
+  localStorage.setItem('cookies_accepted', '1');
+  document.getElementById('cookie-banner')?.classList.add('hidden');
+}
+if (localStorage.getItem('cookies_accepted')) {
+  document.getElementById('cookie-banner')?.classList.add('hidden');
+}
+</script>
 </body>
 </html>

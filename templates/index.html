@@ -121,7 +121,20 @@
 
     <div class="text-center" style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
       <button class="btn btn-ghost" id="card-followup-btn">✦ Följdfråga med kort ✦</button>
+      <button class="btn btn-ghost" id="send-email-btn">✉ Skicka till min mail</button>
       <button class="btn" id="new-reading-btn">✦ Ny läsning ✦</button>
+    </div>
+
+    <!-- Mail-panel -->
+    <div class="send-email-panel" id="send-email-panel" hidden>
+      <div class="divider"></div>
+      <p class="followup-counter">Få hela din läsning skickad till din e-post</p>
+      <div class="followup-row" style="max-width:480px;margin:0 auto;">
+        <input type="email" class="followup-input" id="send-email-input"
+               placeholder="din@email.se" style="height:44px;padding:10px 14px;">
+        <button class="btn" id="send-email-submit">Skicka →</button>
+      </div>
+      <p class="send-email-status" id="send-email-status"></p>
     </div>
 
     <!-- Mini-läggning för följdfråga med kort -->
@@ -149,6 +162,37 @@
 
   </div>
 </section>
+
+<!-- Cookie-banner -->
+<div class="cookie-banner" id="cookie-banner">
+  <p>Vi använder nödvändiga cookies för inloggning och säkerhet. Inga spårningscookies.
+    <a href="/privacy">Integritetspolicy</a></p>
+  <button onclick="acceptCookies()">Okej</button>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <a href="/terms">Användarvillkor</a>
+  <span>·</span>
+  <a href="/privacy">Integritetspolicy</a>
+  <span>·</span>
+  <a href="/payment-terms">Betalningsvillkor</a>
+  <span>·</span>
+  <a href="mailto:jjuniverse.support@gmail.com">Support</a>
+</footer>
+
+<!-- Kort-modal -->
+<div class="card-modal-backdrop" id="card-modal" hidden>
+  <div class="card-modal-content">
+    <button class="card-modal-close" id="card-modal-close">✕</button>
+    <div class="card-modal-pos" id="card-modal-pos"></div>
+    <div class="card-modal-img-wrap" id="card-modal-img-wrap">
+      <img class="card-modal-img" id="card-modal-img" src="" alt="">
+    </div>
+    <div class="card-modal-name" id="card-modal-name"></div>
+    <div class="card-modal-reversed" id="card-modal-reversed"></div>
+  </div>
+</div>
 
 <script src="/static/js/app.js"></script>
 <script src="/static/js/ambient.js"></script>

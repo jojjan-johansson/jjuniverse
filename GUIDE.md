@@ -51,7 +51,12 @@ jjuniverse/
 ```env
 ANTHROPIC_API_KEY=sk-ant-...    # API-nyckel från console.anthropic.com
 SECRET_KEY=...                   # Slumpmässig sträng för Flask-sessioner
+RESEND_API_KEY=re_...            # API-nyckel från resend.com (för att maila läsningar)
+ADMIN_USERNAME=jjadmin           # Admin-användarnamn för /star
+ADMIN_PASSWORD=...               # Admin-lösenord för /star
 ```
+
+> **OBS:** Dela aldrig dessa värden i chatt eller i git. .env är listad i .gitignore.
 
 > **.env får aldrig läggas i Git.** Den är listad i `.gitignore`.
 
@@ -275,10 +280,129 @@ nohup.out
 
 ---
 
-## Nästa steg / idéer
+## Support
 
-- [ ] Spara läsningshistorik per användare i databasen
-- [ ] Betalningsfunktion (Stripe) för premium-åtkomst
+**Support-mail:** jjuniverse.support@gmail.com
+Används för: kundsupport, transaktionella mail (läsningar skickas hit från), Resend/SendGrid avsändaradress.
+
+---
+
+## Betalning — Stripe (planerat)
+
+### Paket & priser (SEK inkl. moms)
+
+| Paket | Pris | Innehåll |
+|-------|------|----------|
+| En fråga | 60 kr | 1 läggning (3 kort) + 3 följdfrågor |
+| Tre frågor | 150 kr | 3 läggningar + 3 följdfrågor per läggning |
+| Årsstjärnan | 300 kr | 1 stor läggning (13 kort) + 3 följdfrågor |
+
+### Teknisk plan
+- **Betalningslösning:** Stripe Checkout (Stripe hanterar kortuppgifter, vi ser dem aldrig)
+- **Gästköp:** Tillåtet — man behöver inte konto för att betala
+- **Leverans:** Läsningen mailas automatiskt till angiven e-post när den är klar
+- **Valuta:** SEK
+- **Marknad:** Sverige (till att börja med)
+- **Webhook-verifiering:** Stripe-signatur verifieras på backend innan köp aktiveras
+- **Idempotency:** `stripe_session_id` sparas i DB så dubbla webhooks inte ger dubbla läsningar
+
+### Databastabeller som behövs
+```sql
+purchases (
+  id, email, stripe_session_id, package, status, created_at
+)
+```
+
+### En läggning = ett köp
+En köpt session = en läggning + upp till 3 följdfrågor. Sedan är sessionen klar. Vill man ha mer köper man ett nytt paket.
+
+---
+
+## Juridik & villkor (att bygga)
+
+### Dokument som ska finnas
+- **Användarvillkor** — länk i footern
+- **Integritetspolicy** — länk i footern
+- **Betalningsvillkor** — visas direkt innan Stripe-checkout
+- **Cookie-banner** — enkel, bara "Okej"-knapp (endast nödvändiga cookies)
+
+### Obligatoriskt innehåll (checklista)
+
+**Ansvarsbegränsning (skyddsväst)**
+- Tjänsten ges "i befintligt skick"
+- Inget garanterat resultat
+- Ej ansvarig för indirekta skador (dåliga beslut baserade på läsning)
+
+**Ångerrätt (EU-lag — KRITISKT)**
+- Kunden måste avsäga sig ångerrätten
+- Checkbox vid köp: *"Jag samtycker till att leveransen påbörjas direkt och att ångerrätten därmed upphör"*
+- Utan detta kan kunder lagligt kräva pengarna tillbaka
+
+**Tjänstens natur (extra viktigt för tarot)**
+- AI-genererad tolkning
+- Ej vetenskapligt bevisad
+- Endast för personlig reflektion och underhållning
+- Ingen medicinsk, psykologisk, juridisk eller finansiell rådgivning
+- Du måste vara 18+ (checkbox vid köp)
+
+**Företagsinfo (måste finnas)**
+- Namn (företag eller privatperson)
+- E-post: jjuniverse.support@gmail.com
+- Land: Sverige
+
+**Betalning**
+- Betalning hanteras av Stripe
+- Vi lagrar inga kortuppgifter
+
+**Övrigt**
+- Rätt att stänga av/blockera användare och konton
+- Svensk lag gäller, tvister hanteras i Sverige
+- Tjänsten garanterar inte alltid tillgänglighet
+- Villkoren kan ändras när som helst
+
+---
+
+## Admin-panel (planerat)
+
+### Åtkomst
+- URL: `jjuniverse.se/star`
+- Användarnamn: satt i `.env` som `ADMIN_USERNAME` (värde: jjadmin)
+- Lösenord: satt i `.env` som `ADMIN_PASSWORD`
+- Separat inloggning, helt separerat från vanliga användarkonton
+- Syns inte i källkoden eller frontend
+
+### Statistik att visa
+- Antal besök per dag/vecka (sidvisningar)
+- Antal registrerade användare
+- Antal läsningar per typ (single/triple/year)
+- Antal köp + intäkter (när Stripe är aktivt)
+
+### Säkerhetsövervakning
+- Misslyckade inloggningsförsök (många från samma IP = misstänkt)
+- Nya konton (ovanlig spike = möjlig bot-registrering)
+- 404-fel (scanning av routes)
+
+### Struktur
+Admin-panelen har egen meny med flikar:
+1. **Översikt** — nyckeltal i kortformat
+2. **Statistik** — grafer/tabeller med besök och läsningar
+3. **Säkerhet** — inloggningsförsök, misstänkt aktivitet
+4. **Användare** — lista, blockera konton (när betalning är på plats)
+
+---
+
+## Byggt & klart
+
+- [x] Admin-panel på `/star` med översikt, statistik och säkerhetsflik
+- [x] Besöksloggning, läsningsloggning, säkerhetshändelser (SQLite)
+- [x] Cookie-banner (localStorage)
+- [x] Användarvillkor (`/terms`), Integritetspolicy (`/privacy`), Betalningsvillkor (`/payment-terms`)
+- [x] "Skicka till min mail"-knapp med Resend-integration
+- [x] Kortförstoring via modal (klick på kort)
+- [x] Footer med villkorslänkar på alla sidor
+
+## Nästa steg
+
+- [ ] Stripe-integration (betalning)
 - [ ] Fler läggningstyper (keltiskt kors, etc.)
-- [ ] Admin-panel för att se antal användare och läsningar
 - [ ] E-post-verifiering vid registrering

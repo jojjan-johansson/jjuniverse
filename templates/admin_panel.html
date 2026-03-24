@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✦ JJ Universe Admin</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#07000f; color:#ede0ff; font-family:'Georgia',serif; min-height:100vh; }
+
+    /* Nav */
+    .nav {
+      background: linear-gradient(90deg, #0d0020, #1a0048);
+      border-bottom: 1px solid rgba(155,48,255,0.3);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .nav-brand {
+      color:#fff;
+      font-size:1rem;
+      letter-spacing:0.12em;
+      padding: 16px 24px 16px 0;
+      border-right: 1px solid rgba(155,48,255,0.2);
+      margin-right: 8px;
+    }
+    .nav a {
+      color:#9980bb;
+      text-decoration:none;
+      padding:16px 18px;
+      font-size:0.85rem;
+      letter-spacing:0.06em;
+      transition:color 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+    .nav a:hover { color:#fff; }
+    .nav a.active { color:#c8a8ff; border-bottom-color:#9b30ff; }
+    .nav-logout {
+      margin-left:auto;
+      color:#6650a0 !important;
+      font-size:0.8rem !important;
+    }
+    .nav-logout:hover { color:#ff9090 !important; }
+
+    /* Main */
+    .main { padding: 32px; max-width: 1100px; margin: 0 auto; }
+    h2 { font-size:1.2rem; color:#fff; letter-spacing:0.1em; margin-bottom:24px; }
+    h3 { font-size:0.95rem; color:#c8a8ff; letter-spacing:0.08em; margin-bottom:12px; text-transform:uppercase; }
+
+    /* Stat cards */
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:32px; }
+    .stat-card {
+      background: linear-gradient(160deg, #1a0048, #0d0020);
+      border: 1px solid rgba(155,48,255,0.25);
+      border-radius:12px;
+      padding:20px 24px;
+    }
+    .stat-label { font-size:0.75rem; color:#9980bb; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:8px; }
+    .stat-value { font-size:2rem; color:#fff; font-weight:bold; }
+
+    /* Tables */
+    .table-wrap { overflow-x:auto; margin-bottom:32px; }
+    table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    th {
+      text-align:left;
+      color:#9980bb;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      font-size:0.75rem;
+      padding:8px 12px;
+      border-bottom:1px solid rgba(155,48,255,0.2);
+    }
+    td {
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.04);
+      color:#ede0ff;
+    }
+    tr:hover td { background:rgba(155,48,255,0.05); }
+
+    /* Event type badges */
+    .badge {
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:4px;
+      font-size:0.75rem;
+      font-weight:bold;
+    }
+    .badge-failed_login  { background:rgba(255,80,80,0.15); color:#ff9090; }
+    .badge-admin_failed_login { background:rgba(255,40,40,0.2); color:#ff6060; }
+    .badge-404           { background:rgba(255,160,0,0.15); color:#ffb84d; }
+
+    /* Section boxes */
+    .section {
+      background: linear-gradient(160deg, #140038, #0a0018);
+      border: 1px solid rgba(155,48,255,0.2);
+      border-radius:12px;
+      padding:24px;
+      margin-bottom:24px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">✦ Admin</div>
+  <a href="/star/overview" class="{{ 'active' if tab == 'overview' else '' }}">Översikt</a>
+  <a href="/star/stats"    class="{{ 'active' if tab == 'stats'    else '' }}">Statistik</a>
+  <a href="/star/security" class="{{ 'active' if tab == 'security' else '' }}">Säkerhet</a>
+  <a href="/star/logout" class="nav-logout">Logga ut</a>
+</nav>
+
+<div class="main">
+
+  <!-- ÖVERSIKT -->
+  {% if tab == 'overview' %}
+  <h2>Översikt</h2>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Användare totalt</div>
+      <div class="stat-value">{{ total_users }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Läsningar totalt</div>
+      <div class="stat-value">{{ total_readings }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Besök idag</div>
+      <div class="stat-value">{{ today_visits }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Besök senaste 7 dagarna</div>
+      <div class="stat-value">{{ week_visits }}</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Läsningar per typ</h3>
+    <table>
+      <tr><th>Typ</th><th>Antal</th></tr>
+      {% for r in readings_by_type %}
+      <tr>
+        <td>{{ {'single':'En Fråga','triple':'Tre Frågor','year':'Årsstjärnan'}.get(r.spread_type, r.spread_type) }}</td>
+        <td>{{ r.cnt }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" style="color:#6650a0;">Inga läsningar ännu</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>Senaste registrerade användare</h3>
+    <table>
+      <tr><th>Användarnamn</th><th>Registrerad</th></tr>
+      {% for u in recent_users %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td style="color:#9980bb;font-size:0.8rem;">{{ u.created }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" style="color:#6650a0;">Inga användare ännu</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+
+  <!-- STATISTIK -->
+  {% if tab == 'stats' %}
+  <h2>Statistik</h2>
+
+  <div class="section">
+    <h3>Besök per dag (senaste 30 dagarna)</h3>
+    <table>
+      <tr><th>Datum</th><th>Besök</th></tr>
+      {% for v in daily_visits %}
+      <tr>
+        <td>{{ v.day }}</td>
+        <td>{{ v.cnt }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" style="color:#6650a0;">Ingen data</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>Läsningar per dag (senaste 30 dagarna)</h3>
+    <table>
+      <tr><th>Datum</th><th>Läsningar</th></tr>
+      {% for r in daily_readings %}
+      <tr>
+        <td>{{ r.day }}</td>
+        <td>{{ r.cnt }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" style="color:#6650a0;">Ingen data</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>Mest besökta sidor</h3>
+    <table>
+      <tr><th>Sida</th><th>Besök</th></tr>
+      {% for p in top_paths %}
+      <tr>
+        <td>{{ p.path }}</td>
+        <td>{{ p.cnt }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" style="color:#6650a0;">Ingen data</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+
+  <!-- SÄKERHET -->
+  {% if tab == 'security' %}
+  <h2>Säkerhet</h2>
+
+  <div class="section">
+    <h3>Misstänkta IP-adresser (misslyckade inlogg)</h3>
+    <table>
+      <tr><th>IP</th><th>Försök</th></tr>
+      {% for f in failed_logins %}
+      <tr>
+        <td>{{ f.ip }}</td>
+        <td style="color:{{ '#ff9090' if f.cnt > 5 else '#ede0ff' }};">{{ f.cnt }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" style="color:#6650a0;">Inga misslyckade inlogg</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>Senaste säkerhetshändelser</h3>
+    <table>
+      <tr><th>Tid</th><th>Typ</th><th>IP</th><th>Detalj</th></tr>
+      {% for e in events %}
+      <tr>
+        <td style="color:#9980bb;font-size:0.8rem;white-space:nowrap;">{{ e.created }}</td>
+        <td><span class="badge badge-{{ e.type }}">{{ e.type }}</span></td>
+        <td>{{ e.ip }}</td>
+        <td style="color:#9980bb;font-size:0.8rem;">{{ e.detail }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" style="color:#6650a0;">Inga händelser</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+</body>
+</html>

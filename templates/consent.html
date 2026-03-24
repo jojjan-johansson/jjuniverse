@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JJ Universe ✦ Välkommen</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .consent-box {
+      background: linear-gradient(160deg, #1a0048 0%, #0d0020 100%);
+      border: 1px solid rgba(155,48,255,0.3);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 0 80px rgba(155,48,255,0.15), 0 8px 40px rgba(0,0,0,0.6);
+      animation: fadeIn 0.6s ease;
+    }
+
+    .consent-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .consent-logo h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.8rem;
+      color: #fff;
+      letter-spacing: 0.15em;
+      margin-bottom: 6px;
+    }
+    .consent-logo p {
+      color: #9980bb;
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 1rem;
+    }
+
+    .consent-intro {
+      color: #c8b4ff;
+      font-family: 'Crimson Text', serif;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+
+    .checkbox-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      cursor: pointer;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      min-width: 20px;
+      border: 1px solid rgba(155,48,255,0.5);
+      border-radius: 5px;
+      background: rgba(255,255,255,0.04);
+      cursor: pointer;
+      margin-top: 2px;
+      transition: background 0.2s, border-color 0.2s;
+      position: relative;
+    }
+    .checkbox-item input[type="checkbox"]:checked {
+      background: linear-gradient(135deg, #5b00a8, #9b30ff);
+      border-color: #9b30ff;
+    }
+    .checkbox-item input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .checkbox-item label {
+      color: #ede0ff;
+      font-family: 'Crimson Text', serif;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    .checkbox-item label a {
+      color: #9b30ff;
+      text-decoration: underline;
+    }
+
+    .consent-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #3a006b, #5b00a8);
+      color: rgba(255,255,255,0.35);
+      border: 1px solid rgba(155,48,255,0.2);
+      border-radius: 10px;
+      padding: 14px;
+      font-family: 'Cinzel', serif;
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+      cursor: not-allowed;
+      transition: all 0.3s ease;
+    }
+    .consent-btn.active {
+      background: linear-gradient(135deg, #5b00a8, #9b30ff);
+      color: #fff;
+      border-color: rgba(155,48,255,0.5);
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(155,48,255,0.3);
+    }
+    .consent-btn.active:hover {
+      box-shadow: 0 0 35px rgba(155,48,255,0.5);
+      transform: translateY(-1px);
+    }
+
+    .consent-note {
+      text-align: center;
+      color: #6650a0;
+      font-size: 0.75rem;
+      margin-top: 16px;
+      font-family: 'Crimson Text', serif;
+    }
+  </style>
+</head>
+<body>
+<canvas id="stars-canvas"></canvas>
+
+<div class="consent-box">
+  <div class="consent-logo">
+    <h1>✦ JJ Universe ✦</h1>
+    <p>Tarot & AI-tolkning</p>
+  </div>
+
+  <p class="consent-intro">
+    Innan du fortsätter behöver du godkänna följande. Alla punkter måste bekräftas.
+  </p>
+
+  <div class="checkbox-list">
+    <label class="checkbox-item">
+      <input type="checkbox" id="cb-terms">
+      <span>Jag har läst och godkänner <a href="/terms" target="_blank">användarvillkoren</a>
+      och <a href="/privacy" target="_blank">integritetspolicyn</a></span>
+    </label>
+
+    <label class="checkbox-item">
+      <input type="checkbox" id="cb-entertainment">
+      <span>Jag förstår att JJ Universe är en underhållningstjänst med AI-genererade tolkningar —
+      inte medicinsk, psykologisk, juridisk eller finansiell rådgivning</span>
+    </label>
+
+    <label class="checkbox-item">
+      <input type="checkbox" id="cb-age">
+      <span>Jag bekräftar att jag är 18 år eller äldre</span>
+    </label>
+
+    <label class="checkbox-item">
+      <input type="checkbox" id="cb-connectivity">
+      <span>Jag förstår att tjänsten kräver internetuppkoppling (WiFi eller mobilt data).
+      JJ Universe ansvarar inte för avbrott eller problem orsakade av anslutningsfel</span>
+    </label>
+  </div>
+
+  <button class="consent-btn" id="consent-btn" disabled>
+    Jag godkänner — fortsätt ✦
+  </button>
+
+  <p class="consent-note">Ditt godkännande sparas med tidsstämpel och IP-adress som bevis.</p>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+  const checkboxes = ['cb-terms', 'cb-entertainment', 'cb-age', 'cb-connectivity'];
+  const btn = document.getElementById('consent-btn');
+
+  function updateBtn() {
+    const allChecked = checkboxes.every(id => document.getElementById(id).checked);
+    btn.disabled = !allChecked;
+    btn.classList.toggle('active', allChecked);
+  }
+
+  checkboxes.forEach(id => {
+    document.getElementById(id).addEventListener('change', updateBtn);
+  });
+
+  btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    await fetch('/api/consent', { method: 'POST' });
+
+    localStorage.setItem('consent_given', '1');
+    localStorage.setItem('cookies_accepted', '1');
+
+    // Gå vidare till inloggning eller appen
+    window.location.href = '/login';
+  });
+</script>
+</body>
+</html>

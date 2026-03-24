@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⭐ Admin</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#07000f;
+      color:#ede0ff;
+      font-family: 'Georgia', serif;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .box {
+      background: linear-gradient(160deg, #1a0048 0%, #0d0020 100%);
+      border: 1px solid rgba(155,48,255,0.3);
+      border-radius: 16px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 0 60px rgba(155,48,255,0.15);
+    }
+    h1 {
+      text-align:center;
+      font-size:1.4rem;
+      letter-spacing:0.15em;
+      color:#fff;
+      margin-bottom:32px;
+    }
+    label {
+      display:block;
+      font-size:0.8rem;
+      color:#9980bb;
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      margin-bottom:6px;
+    }
+    input {
+      width:100%;
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(155,48,255,0.3);
+      border-radius:8px;
+      color:#ede0ff;
+      padding:10px 14px;
+      font-size:0.95rem;
+      margin-bottom:20px;
+      outline:none;
+    }
+    input:focus { border-color:rgba(155,48,255,0.7); }
+    button {
+      width:100%;
+      background: linear-gradient(135deg, #5b00a8, #9b30ff);
+      color:#fff;
+      border:none;
+      border-radius:8px;
+      padding:12px;
+      font-size:1rem;
+      cursor:pointer;
+      letter-spacing:0.05em;
+    }
+    button:hover { opacity:0.9; }
+    .error {
+      background:rgba(255,50,50,0.1);
+      border:1px solid rgba(255,50,50,0.3);
+      border-radius:8px;
+      padding:10px 14px;
+      font-size:0.85rem;
+      color:#ff9090;
+      margin-bottom:20px;
+      text-align:center;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>✦ Admin ✦</h1>
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+      <label>Användarnamn</label>
+      <input type="text" name="username" autocomplete="off" autofocus>
+      <label>Lösenord</label>
+      <input type="password" name="password">
+      <button type="submit">Logga in</button>
+    </form>
+  </div>
+</body>
+</html>

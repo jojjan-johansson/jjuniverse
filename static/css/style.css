@@ -947,3 +947,158 @@ body {
   0%, 100% { box-shadow: 0 0 28px rgba(155,48,255,0.35), 0 0 55px rgba(155,48,255,0.15); }
   50%       { box-shadow: 0 0 38px rgba(155,48,255,0.55), 0 0 75px rgba(155,48,255,0.25); }
 }
+
+/* ── Cookie-banner ───────────────────────────────────────────────────────── */
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(13, 0, 32, 0.97);
+  border-top: 1px solid rgba(155, 48, 255, 0.3);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 2000;
+  flex-wrap: wrap;
+  animation: fadeIn 0.4s ease;
+}
+.cookie-banner.hidden { display: none; }
+.cookie-banner p {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  margin: 0;
+}
+.cookie-banner p a { color: #9b30ff; }
+.cookie-banner button {
+  background: linear-gradient(135deg, #5b00a8, #9b30ff);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.site-footer {
+  text-align: center;
+  padding: 24px 16px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.site-footer a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: color 0.2s;
+}
+.site-footer a:hover { color: var(--gold); }
+.site-footer span { color: rgba(155,48,255,0.4); font-size: 0.7rem; }
+
+/* ── Skicka till mail ────────────────────────────────────────────────────── */
+.send-email-panel { margin-top: 16px; text-align: center; }
+.send-email-status {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  min-height: 1.2em;
+  color: #9b30ff;
+}
+
+/* ── Kort-modal ──────────────────────────────────────────────────────────── */
+.card-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 0, 15, 0.88);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.card-modal-backdrop[hidden] { display: none; }
+
+.card-modal-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 24px 28px;
+  background: linear-gradient(160deg, #1a0048 0%, #0d0020 100%);
+  border: 1px solid rgba(155, 48, 255, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 0 60px rgba(155, 48, 255, 0.3), 0 8px 40px rgba(0,0,0,0.8);
+  max-width: 90vw;
+  animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.card-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+}
+.card-modal-close:hover { color: var(--gold); }
+
+.card-modal-pos {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  min-height: 1em;
+}
+
+.card-modal-img-wrap {
+  perspective: 800px;
+}
+
+.card-modal-img {
+  width: 220px;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 0 30px rgba(155,48,255,0.4), 0 8px 20px rgba(0,0,0,0.7);
+  display: block;
+  filter: saturate(0.85) brightness(0.95) contrast(1.05);
+}
+
+.card-modal-img.reversed {
+  transform: rotate(180deg);
+}
+
+.card-modal-name {
+  font-family: 'Cinzel', serif;
+  font-size: 1.2rem;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.card-modal-reversed {
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+  font-size: 0.9rem;
+  color: #c070ff;
+  min-height: 1em;
+}
