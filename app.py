@@ -173,61 +173,12 @@ def welcome():
 def login_page():
     if not session.get("consent_given"):
         return redirect(url_for("welcome"))
-    if 'user_id' in session:
-        return redirect(url_for('kop'))
-
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        db = get_db()
-        user = db.execute(
-            "SELECT * FROM users WHERE username = ?", (username,)
-        ).fetchone()
-        db.close()
-
-        if user and check_password_hash(user["password"], password):
-            session["user_id"]  = user["id"]
-            session["username"] = user["username"]
-            return redirect(url_for("kop"))
-        else:
-            ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
-            log_security_event("failed_login", ip, f"username={username}")
-            flash("Fel användarnamn eller lösenord.", "error")
-            return render_template("login.html", show_register=False)
-
-    return render_template("login.html", show_register=False)
+    return render_template("login.html")
 
 
 @app.route("/register", methods=["POST"])
 def register():
-    username  = request.form.get("username", "").strip()
-    password  = request.form.get("password", "")
-    password2 = request.form.get("password2", "")
-
-    if len(username) < 3:
-        flash("Användarnamnet måste vara minst 3 tecken.", "error")
-        return render_template("login.html", show_register=True)
-    if len(password) < 6:
-        flash("Lösenordet måste vara minst 6 tecken.", "error")
-        return render_template("login.html", show_register=True)
-    if password != password2:
-        flash("Lösenorden matchar inte.", "error")
-        return render_template("login.html", show_register=True)
-
-    db = get_db()
-    try:
-        db.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            (username, generate_password_hash(password))
-        )
-        db.commit()
-        db.close()
-        flash("Kontot skapat! Logga in nedan.", "success")
-        return render_template("login.html", show_register=False)
-    except Exception:
-        db.close()
-        flash("Användarnamnet är redan taget — välj ett annat.", "error")
-        return render_template("login.html", show_register=True)
+    return redirect(url_for("kop"))
 
 
 @app.route("/logout")

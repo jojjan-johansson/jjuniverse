@@ -52,7 +52,6 @@
     <p class="free-card-intro">Dra ditt kort för dagen — helt gratis</p>
 
     <div class="free-card-area" id="free-card-area">
-      <!-- Kortbaksidan -->
       <div class="free-card-wrap" id="free-card-wrap">
         <div class="free-card" id="free-card">
           <div class="free-card-inner">
@@ -75,75 +74,18 @@
         <p class="free-card-text" id="free-card-text"></p>
         <p class="free-card-cta">
           Vill du ha en fullständig läsning?
-          <a href="#" onclick="document.getElementById('tab-login').click(); document.getElementById('auth-anchor').scrollIntoView({behavior:'smooth'}); return false;">Logga in eller skapa ett konto</a>
+          <a href="/kop">Köp en läsning här</a>
         </p>
       </div>
     </div>
   </div>
 
-  <div id="auth-anchor"></div>
-
-  <!-- Flash-meddelanden -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash flash-{{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-
-  <!-- Köp utan konto -->
-  <div style="text-align:center;margin-bottom:24px;">
+  <!-- Köpknapp -->
+  <div style="text-align:center;margin-bottom:48px;">
     <a href="/kop" style="display:inline-block;background:linear-gradient(135deg,#5b00a8,#9b30ff);color:#fff;text-decoration:none;border-radius:10px;padding:14px 32px;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.08em;box-shadow:0 0 20px rgba(155,48,255,0.3);">
       ✦ Köp en läsning
     </a>
-    <p style="color:#6650a0;font-size:0.8rem;margin-top:10px;font-family:'Crimson Text',serif;">Inget konto krävs — betala direkt via Stripe</p>
-  </div>
-
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-    <div style="flex:1;height:1px;background:rgba(155,48,255,0.2);"></div>
-    <span style="color:#6650a0;font-size:0.8rem;">eller logga in</span>
-    <div style="flex:1;height:1px;background:rgba(155,48,255,0.2);"></div>
-  </div>
-
-  <!-- Formulär -->
-  <div class="auth-card">
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="showTab('login')">Logga in</button>
-      <button class="auth-tab" id="tab-register" onclick="showTab('register')">Skapa konto</button>
-    </div>
-
-    <!-- Inloggning -->
-    <form class="auth-form" id="form-login" method="POST" action="/login">
-      <input type="hidden" name="action" value="login">
-      <div class="auth-field">
-        <label>Användarnamn</label>
-        <input type="text" name="username" placeholder="Ditt användarnamn" required autocomplete="username">
-      </div>
-      <div class="auth-field">
-        <label>Lösenord</label>
-        <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
-      </div>
-      <button type="submit" class="btn auth-submit">✦ Logga in</button>
-    </form>
-
-    <!-- Registrering -->
-    <form class="auth-form" id="form-register" method="POST" action="/register" style="display:none">
-      <input type="hidden" name="action" value="register">
-      <div class="auth-field">
-        <label>Välj användarnamn</label>
-        <input type="text" name="username" placeholder="Unikt användarnamn" required autocomplete="username" minlength="3" maxlength="30">
-      </div>
-      <div class="auth-field">
-        <label>Välj lösenord</label>
-        <input type="password" name="password" placeholder="Minst 6 tecken" required autocomplete="new-password" minlength="6">
-      </div>
-      <div class="auth-field">
-        <label>Upprepa lösenord</label>
-        <input type="password" name="password2" placeholder="••••••••" required autocomplete="new-password" minlength="6">
-      </div>
-      <button type="submit" class="btn auth-submit">✦ Skapa konto</button>
-    </form>
+    <p style="color:#6650a0;font-size:0.8rem;margin-top:10px;font-family:'Crimson Text',serif;">Betala direkt via Stripe — inget konto krävs</p>
   </div>
 
   <p class="login-footer">Dina kortläsningar är privata och tillhör bara dig</p>
@@ -153,14 +95,6 @@
 <script src="/static/js/app.js"></script>
 <script src="/static/js/ambient.js"></script>
 <script>
-function showTab(tab) {
-  document.getElementById('form-login').style.display    = tab === 'login'    ? 'flex' : 'none';
-  document.getElementById('form-register').style.display = tab === 'register' ? 'flex' : 'none';
-  document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
-  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
-}
-{% if show_register %}showTab('register');{% endif %}
-
 let freeCardDrawn = false;
 
 async function drawFreeCard() {
@@ -210,7 +144,7 @@ async function drawFreeCard() {
 </script>
 
 <div class="cookie-banner" id="cookie-banner">
-  <p>Vi använder nödvändiga cookies för inloggning och säkerhet. Inga spårningscookies.
+  <p>Vi använder nödvändiga cookies för säkerhet. Inga spårningscookies.
     <a href="/privacy">Integritetspolicy</a></p>
   <button onclick="acceptCookies()">Okej</button>
 </div>
