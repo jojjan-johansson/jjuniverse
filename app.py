@@ -26,6 +26,10 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+ADMIN_EMAIL    = os.environ.get("ADMIN_EMAIL", "")
+
+# Dedup-skydd: undviker att skicka samma varningsmail flera gånger i rad
+_last_alert_sent: dict = {}
 
 PACKAGES = {
     "single": {"name": "En Fråga",    "desc": "1 läggning (3 kort) + 3 följdfrågor", "price": 6000},
@@ -130,6 +134,8 @@ def track_visit(response):
     log_visit(ip, request.path, ua)
     if response.status_code == 404:
         log_security_event("404", ip, request.path)
+        if any(p in request.path for p in SENSITIVE_PATHS):
+            send_security_alert_email("Känslig fil-scanning", f"{request.path} från {ip}")
     return response
 
 
@@ -510,6 +516,64 @@ def send_access_email(to_email, token, pkg_name, base_url):
         app.logger.error(f"Access email error: {e}")
 
 
+# ── Säkerhetsvarningar ────────────────────────────────────────────────────────
+SENSITIVE_PATHS = (".env", ".git", "aws-config", "config.php", "wp-admin", "wp-login")
+
+def send_security_alert_email(alert_type: str, detail: str):
+    """Skickar varningsmail till admin. Skickar max 1 gång per timme per typ."""
+    if not ADMIN_EMAIL:
+        return
+    now = datetime.now().timestamp()
+    key = alert_type
+    if now - _last_alert_sent.get(key, 0) < 3600:
+        return
+    _last_alert_sent[key] = now
+    html = f"""
+    <body style='font-family:Georgia,serif;background:#07000f;color:#ede0ff;padding:32px;max-width:500px;'>
+      <h2 style='color:#ff6060;'>⚠ Säkerhetsvarning — JJ Universe</h2>
+      <p><strong>Typ:</strong> {alert_type}</p>
+      <p><strong>Detalj:</strong> {detail}</p>
+      <p><strong>Tid:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+      <p style='color:#9980bb;font-size:0.85em;'>Logga in på <a href='https://jjuniverse.se/star' style='color:#9b30ff;'>jjuniverse.se/star</a> för att se mer.</p>
+    </body>
+    """
+    try:
+        resend.Emails.send({
+            "from": "JJ Universe <onboarding@resend.dev>",
+            "to": [ADMIN_EMAIL],
+            "subject": f"⚠ Säkerhetsvarning: {alert_type}",
+            "html": html
+        })
+    except Exception as e:
+        app.logger.error(f"Security alert email error: {e}")
+
+
+def get_security_alerts(db):
+    """Returnerar lista med aktiva säkerhetsvarningar (senaste 24h)."""
+    alerts = []
+    brute = db.execute("""
+        SELECT ip, COUNT(*) as cnt FROM security_events
+        WHERE type = 'admin_failed_login'
+        AND created >= datetime('now', '-10 minutes')
+        GROUP BY ip HAVING cnt >= 5
+    """).fetchall()
+    for row in brute:
+        alerts.append(f"Brute force mot admin: {row['cnt']} försök från {row['ip']} senaste 10 min")
+
+    sensitive = db.execute("""
+        SELECT ip, detail, created FROM security_events
+        WHERE type = '404'
+        AND (detail LIKE '%.env%' OR detail LIKE '%.git%' OR detail LIKE '%config.php%'
+             OR detail LIKE '%aws-config%' OR detail LIKE '%wp-login%')
+        AND created >= datetime('now', '-1 hour')
+        ORDER BY created DESC LIMIT 5
+    """).fetchall()
+    for row in sensitive:
+        alerts.append(f"Känslig fil-scanning: {row['detail']} från {row['ip']}")
+
+    return alerts
+
+
 @app.route("/access/<token>")
 def access_reading(token):
     db = get_db()
@@ -745,6 +809,19 @@ def admin_login_post():
         return redirect(url_for("admin_overview"))
     else:
         log_security_event("admin_failed_login", ip, f"username={username}")
+        # Kolla brute force och skicka varningsmail om nödvändigt
+        try:
+            db = get_db()
+            cnt = db.execute("""
+                SELECT COUNT(*) FROM security_events
+                WHERE type='admin_failed_login' AND ip=?
+                AND created >= datetime('now', '-10 minutes')
+            """, (ip,)).fetchone()[0]
+            db.close()
+            if cnt >= 5:
+                send_security_alert_email("Brute force admin", f"{cnt} misslyckade inlogg från {ip}")
+        except Exception:
+            pass
         return render_template("admin_login.html", error="Fel uppgifter")
 
 
@@ -768,6 +845,7 @@ def admin_overview():
     recent_users = db.execute(
         "SELECT username, created FROM users ORDER BY created DESC LIMIT 10"
     ).fetchall()
+    alerts = get_security_alerts(db)
     db.close()
     return render_template("admin_panel.html",
         tab="overview",
@@ -776,7 +854,8 @@ def admin_overview():
         today_visits=today_visits,
         week_visits=week_visits,
         readings_by_type=readings_by_type,
-        recent_users=recent_users
+        recent_users=recent_users,
+        alerts=alerts
     )
 
 
@@ -798,12 +877,14 @@ def admin_stats():
         SELECT path, COUNT(*) as cnt FROM visits
         GROUP BY path ORDER BY cnt DESC LIMIT 15
     """).fetchall()
+    alerts = get_security_alerts(db)
     db.close()
     return render_template("admin_panel.html",
         tab="stats",
         daily_visits=daily_visits,
         daily_readings=daily_readings,
-        top_paths=top_paths
+        top_paths=top_paths,
+        alerts=alerts
     )
 
 
@@ -819,11 +900,13 @@ def admin_security():
         WHERE type = 'failed_login'
         GROUP BY ip ORDER BY cnt DESC LIMIT 20
     """).fetchall()
+    alerts = get_security_alerts(db)
     db.close()
     return render_template("admin_panel.html",
         tab="security",
         events=events,
-        failed_logins=failed_logins
+        failed_logins=failed_logins,
+        alerts=alerts
     )
 
 

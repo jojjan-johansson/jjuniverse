@@ -90,6 +90,24 @@
     .badge-admin_failed_login { background:rgba(255,40,40,0.2); color:#ff6060; }
     .badge-404           { background:rgba(255,160,0,0.15); color:#ffb84d; }
 
+    /* Varningsbanner */
+    .alert-banner {
+      background: rgba(255,60,60,0.12);
+      border: 1px solid rgba(255,60,60,0.4);
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin-bottom: 24px;
+    }
+    .alert-banner h4 {
+      color: #ff6060;
+      font-size: 0.9rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .alert-banner ul { padding-left: 18px; }
+    .alert-banner li { color: #ffb4b4; font-size: 0.85rem; margin-bottom: 4px; }
+
     /* Section boxes */
     .section {
       background: linear-gradient(160deg, #140038, #0a0018);
@@ -111,6 +129,15 @@
 </nav>
 
 <div class="main">
+
+  {% if alerts %}
+  <div class="alert-banner">
+    <h4>⚠ Säkerhetsvarning</h4>
+    <ul>
+      {% for a in alerts %}<li>{{ a }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 
   <!-- ÖVERSIKT -->
   {% if tab == 'overview' %}
