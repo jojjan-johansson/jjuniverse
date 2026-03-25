@@ -9,6 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import anthropic
 import resend
+import stripe
 from cards import TAROT_CARDS
 from database import (init_db, get_db, can_draw_free_card, record_free_card_draw,
                       log_visit, log_security_event, log_reading, log_consent)
@@ -19,9 +20,18 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 resend.api_key = os.environ.get("RESEND_API_KEY", "")
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLIC_KEY = os.environ.get("STRIPE_PUBLIC_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
+PACKAGES = {
+    "single": {"name": "En Fråga",    "desc": "1 läggning (3 kort) + 3 följdfrågor", "price": 6000},
+    "triple": {"name": "Tre Frågor",  "desc": "3 läggningar + 3 följdfrågor per läggning", "price": 15000},
+    "year":   {"name": "Årsstjärnan", "desc": "Helårsläggning (13 kort) + 3 följdfrågor", "price": 30000},
+}
 
 # Initiera databasen vid start
 init_db()
@@ -31,7 +41,8 @@ def login_required(f):
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'user_id' not in session:
+        # Alla behöver en giltig köpsession — admin undantagen
+        if 'purchase_token' not in session and not session.get('admin_logged_in'):
             return redirect(url_for('login_page'))
         return f(*args, **kwargs)
     return decorated
@@ -144,7 +155,7 @@ def login_page():
     if not session.get("consent_given"):
         return redirect(url_for("welcome"))
     if 'user_id' in session:
-        return redirect(url_for('index'))
+        return redirect(url_for('kop'))
 
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -158,7 +169,7 @@ def login_page():
         if user and check_password_hash(user["password"], password):
             session["user_id"]  = user["id"]
             session["username"] = user["username"]
-            return redirect(url_for("index"))
+            return redirect(url_for("kop"))
         else:
             ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
             log_security_event("failed_login", ip, f"username={username}")
@@ -262,11 +273,35 @@ def free_card():
 
 @app.route("/")
 def index():
+    # Admin har alltid fri tillgång
+    if session.get("admin_logged_in"):
+        return render_template("index.html",
+            username="Admin",
+            purchase_package=None,
+            stripe_public_key=STRIPE_PUBLIC_KEY
+        )
     if not session.get("consent_given"):
         return redirect(url_for("welcome"))
-    if not session.get("user_id"):
+    if not session.get("purchase_token"):
         return redirect(url_for("login_page"))
-    return render_template("index.html", username=session.get("username"))
+
+    # Köpsession vars läsning redan är klar → skicka till ny betalning
+    purchase_token = session.get("purchase_token")
+    db = get_db()
+    purchase = db.execute(
+        "SELECT reading_done FROM purchases WHERE access_token=?", (purchase_token,)
+    ).fetchone()
+    db.close()
+    if purchase and purchase["reading_done"]:
+        session.pop("purchase_token", None)
+        session.pop("purchase_package", None)
+        return redirect(url_for("kop"))
+
+    return render_template("index.html",
+        username=session.get("username", "Gäst"),
+        purchase_package=session.get("purchase_package", None),
+        stripe_public_key=STRIPE_PUBLIC_KEY
+    )
 
 
 @app.route("/api/cards")
@@ -282,6 +317,22 @@ def reading():
     spread_type = data.get("spread_type")
     questions   = data.get("questions", [])
     cards       = data.get("cards", [])
+
+    # Gästköp — kontrollera att läsningen inte redan är gjord
+    purchase_token = session.get("purchase_token")
+    if purchase_token:
+        db = get_db()
+        purchase = db.execute(
+            "SELECT reading_done FROM purchases WHERE access_token=?", (purchase_token,)
+        ).fetchone()
+        db.close()
+        if purchase and purchase["reading_done"]:
+            return jsonify({"error": "Läsningen är redan genomförd"}), 403
+        # Markera som gjord
+        db = get_db()
+        db.execute("UPDATE purchases SET reading_done=1 WHERE access_token=?", (purchase_token,))
+        db.commit()
+        db.close()
 
     if spread_type == "single":
         prompt = build_single_prompt(questions[0], cards)
@@ -327,7 +378,7 @@ def followup():
         try:
             with client.messages.stream(
                 model="claude-haiku-4-5",
-                max_tokens=1000,
+                max_tokens=1500,
                 system=SYSTEM_PROMPT,
                 messages=messages
             ) as stream:
@@ -350,6 +401,238 @@ def save_consent():
     ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
     log_consent(ip)
     session["consent_given"] = True
+    return jsonify({"ok": True})
+
+
+# ── Stripe — köpsidor ─────────────────────────────────────────────────────────
+@app.route("/kop")
+def kop():
+    if not session.get("consent_given"):
+        return redirect(url_for("welcome"))
+    return render_template("kop.html", packages=PACKAGES)
+
+
+@app.route("/kop/bekrafta")
+def kop_bekrafta():
+    if not session.get("consent_given"):
+        return redirect(url_for("welcome"))
+    package = request.args.get("package", "")
+    if package not in PACKAGES:
+        return redirect(url_for("kop"))
+    return render_template("kop_bekrafta.html", package=package, pkg=PACKAGES[package],
+                           stripe_public_key=STRIPE_PUBLIC_KEY)
+
+
+@app.route("/api/create-checkout-session", methods=["POST"])
+def create_checkout_session():
+    if not session.get("consent_given"):
+        return jsonify({"error": "Villkor ej godkända"}), 403
+    data    = request.get_json()
+    package = data.get("package", "")
+    if package not in PACKAGES:
+        return jsonify({"error": "Ogiltigt paket"}), 400
+
+    pkg = PACKAGES[package]
+    ip  = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+    base_url = request.host_url.rstrip("/")
+
+    checkout = stripe.checkout.Session.create(
+        mode="payment",
+        payment_method_types=["card"],
+        line_items=[{
+            "price_data": {
+                "currency": "sek",
+                "unit_amount": pkg["price"],
+                "product_data": {
+                    "name": f"JJ Universe — {pkg['name']}",
+                    "description": pkg["desc"] + ". Enbart för underhållning.",
+                }
+            },
+            "quantity": 1,
+        }],
+        custom_text={
+            "submit": {"message": "Genom att betala bekräftar du att du avsäger dig ångerrätten för detta digitala innehåll som levereras omedelbart."}
+        },
+        success_url=base_url + "/payment/success?session_id={CHECKOUT_SESSION_ID}",
+        cancel_url=base_url + "/payment/cancel",
+        metadata={"package": package, "ip": ip},
+    )
+
+    token = secrets.token_urlsafe(32)
+    db = get_db()
+    db.execute(
+        "INSERT OR IGNORE INTO purchases (stripe_session_id, package, status, access_token, ip) VALUES (?,?,?,?,?)",
+        (checkout.id, package, "pending", token, ip)
+    )
+    db.commit()
+    db.close()
+
+    return jsonify({"url": checkout.url})
+
+
+def send_access_email(to_email, token, pkg_name, base_url):
+    """Skickar ett mail med återställningslänk till kunden."""
+    access_url = f"{base_url}/access/{token}"
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset='utf-8'></head>
+    <body style='background:#07000f;color:#ede0ff;font-family:Georgia,serif;max-width:520px;margin:0 auto;padding:32px 24px;'>
+      <div style='text-align:center;margin-bottom:32px;'>
+        <h1 style='font-family:serif;color:#ffffff;letter-spacing:0.1em;'>✦ JJ Universe ✦</h1>
+        <p style='color:#9980bb;'>Din {pkg_name} är betald och redo</p>
+      </div>
+      <div style='background:rgba(155,48,255,0.08);border:1px solid rgba(155,48,255,0.25);border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;'>
+        <p style='color:#c8b4ff;margin-bottom:20px;line-height:1.6;'>
+          Spara detta mail! Om du förlorar din session kan du alltid klicka länken nedan för att komma tillbaka till din läsning.
+        </p>
+        <a href='{access_url}'
+           style='display:inline-block;background:linear-gradient(135deg,#5b00a8,#9b30ff);color:#fff;text-decoration:none;border-radius:10px;padding:14px 32px;font-family:serif;font-size:1rem;letter-spacing:0.05em;'>
+          ✦ Påbörja min läsning
+        </a>
+        <p style='color:#6650a0;font-size:0.8em;margin-top:16px;'>Länken fungerar en gång och gäller i 24 timmar.</p>
+      </div>
+      <p style='color:#6650a0;font-size:0.75em;text-align:center;'>
+        Enbart för underhållning och personlig reflektion.<br>
+        © {datetime.now().year} JJ Universe — <a href='https://jjuniverse.se' style='color:#9b30ff;'>jjuniverse.se</a>
+      </p>
+    </body>
+    </html>
+    """
+    try:
+        resend.Emails.send({
+            "from": "JJ Universe <onboarding@resend.dev>",
+            "to": [to_email],
+            "subject": f"✦ Din {pkg_name} — spara denna länk",
+            "html": html
+        })
+    except Exception as e:
+        app.logger.error(f"Access email error: {e}")
+
+
+@app.route("/access/<token>")
+def access_reading(token):
+    db = get_db()
+    purchase = db.execute(
+        "SELECT * FROM purchases WHERE access_token = ?", (token,)
+    ).fetchone()
+    db.close()
+
+    if not purchase:
+        return render_template("access_invalid.html")
+
+    if purchase["status"] == "used":
+        return render_template("access_used.html")
+
+    if purchase["status"] != "paid":
+        return render_template("access_invalid.html")
+
+    # Markera som använd
+    db = get_db()
+    db.execute(
+        "UPDATE purchases SET status='used', used_at=datetime('now') WHERE access_token=?",
+        (token,)
+    )
+    db.commit()
+    db.close()
+
+    # Sätt session
+    session["purchase_token"]   = token
+    session["purchase_package"] = purchase["package"]
+    session["consent_given"]    = True
+
+    return redirect(url_for("index"))
+
+
+@app.route("/payment/success")
+def payment_success():
+    stripe_session_id = request.args.get("session_id", "")
+    if not stripe_session_id:
+        return redirect(url_for("kop"))
+    try:
+        cs = stripe.checkout.Session.retrieve(stripe_session_id)
+        if cs.payment_status == "paid":
+            db = get_db()
+            db.execute("UPDATE purchases SET status='paid', email=? WHERE stripe_session_id=?",
+                       (cs.customer_details.email or "", stripe_session_id))
+            db.commit()
+            purchase = db.execute("SELECT * FROM purchases WHERE stripe_session_id=?",
+                                  (stripe_session_id,)).fetchone()
+            db.close()
+
+            if purchase:
+                ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+                log_consent(ip, cs.customer_details.email or "", accepted_withdrawal=True)
+                session["purchase_token"]   = purchase["access_token"]
+                session["purchase_package"] = purchase["package"]
+                session["consent_given"]    = True
+                pkg  = PACKAGES.get(purchase["package"], {})
+                email = cs.customer_details.email or ""
+
+                # Skicka access-mail automatiskt
+                if email:
+                    base_url = request.host_url.rstrip("/")
+                    send_access_email(email, purchase["access_token"], pkg.get("name",""), base_url)
+
+                return render_template("payment_success.html", pkg=pkg, email=email)
+    except Exception:
+        pass
+    return redirect(url_for("kop"))
+
+
+@app.route("/session/end")
+def session_end():
+    """Avslutar sessionen helt och skickar tillbaka till startsidan."""
+    keep_consent = session.get("consent_given")
+    session.clear()
+    if keep_consent:
+        session["consent_given"] = True
+    return redirect(url_for("login_page"))
+
+
+@app.route("/session/check")
+def session_check():
+    """Anropas vid bakåtnavigering i köpsession — servern bestämmer vart användaren ska."""
+    token = session.get("purchase_token")
+    if not token:
+        return redirect(url_for("kop"))
+    db = get_db()
+    purchase = db.execute(
+        "SELECT reading_done FROM purchases WHERE access_token=?", (token,)
+    ).fetchone()
+    db.close()
+    if not purchase or purchase["reading_done"]:
+        session.pop("purchase_token", None)
+        session.pop("purchase_package", None)
+        return redirect(url_for("kop"))
+    return redirect(url_for("index"))
+
+
+@app.route("/payment/cancel")
+def payment_cancel():
+    return render_template("payment_cancel.html")
+
+
+@app.route("/webhook/stripe", methods=["POST"])
+def stripe_webhook():
+    payload    = request.get_data()
+    sig_header = request.headers.get("Stripe-Signature", "")
+    if not STRIPE_WEBHOOK_SECRET:
+        return jsonify({"ok": True})
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except Exception:
+        return jsonify({"error": "Invalid signature"}), 400
+
+    if event["type"] == "checkout.session.completed":
+        cs = event["data"]["object"]
+        if cs["payment_status"] == "paid":
+            email = (cs.get("customer_details") or {}).get("email", "")
+            db = get_db()
+            db.execute("UPDATE purchases SET status='paid', email=? WHERE stripe_session_id=?",
+                       (email, cs["id"]))
+            db.commit()
+            db.close()
     return jsonify({"ok": True})
 
 
@@ -430,13 +713,14 @@ def send_reading():
 
     try:
         resend.Emails.send({
-            "from": "JJ Universe <no-reply@jjuniverse.se>",
+            "from": "JJ Universe <onboarding@resend.dev>",
             "to": [to_email],
             "subject": f"✦ Din {spread_label} från JJ Universe",
             "html": html
         })
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.error(f"Resend error: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -456,6 +740,7 @@ def admin_login_post():
 
     if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
         session["admin_logged_in"] = True
+        session["consent_given"] = True
         session.permanent = False
         return redirect(url_for("admin_overview"))
     else:

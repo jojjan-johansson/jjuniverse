@@ -17,7 +17,7 @@
 <!-- ══════════════════════════════════════════════════
      INTRO
 ══════════════════════════════════════════════════ -->
-<section id="intro-section" class="section">
+<section id="intro-section" class="section"{% if purchase_package %} hidden{% endif %}>
   <div class="top-bar">
     <span class="top-user">✦ {{ username }}</span>
     <a href="/logout" class="top-logout">Logga ut</a>
@@ -122,7 +122,11 @@
     <div class="text-center" style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
       <button class="btn btn-ghost" id="card-followup-btn">✦ Följdfråga med kort ✦</button>
       <button class="btn btn-ghost" id="send-email-btn">✉ Skicka till min mail</button>
-      <button class="btn" id="new-reading-btn">✦ Ny läsning ✦</button>
+      <button class="btn" id="new-reading-btn"
+        data-purchase="{{ 'true' if purchase_package else 'false' }}">✦ Ny läsning ✦</button>
+      {% if purchase_package %}
+      <button class="btn btn-ghost" id="end-session-btn">Logga ut</button>
+      {% endif %}
     </div>
 
     <!-- Mail-panel -->
@@ -194,6 +198,9 @@
   </div>
 </div>
 
+<script>
+  const PURCHASE_PACKAGE = "{{ purchase_package or '' }}";
+</script>
 <script src="/static/js/app.js"></script>
 <script src="/static/js/ambient.js"></script>
 </body>

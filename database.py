@@ -52,6 +52,27 @@ def init_db():
         )
     ''')
     conn.execute('''
+        CREATE TABLE IF NOT EXISTS purchases (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            stripe_session_id TEXT UNIQUE,
+            email            TEXT,
+            package          TEXT,
+            status           TEXT DEFAULT 'pending',
+            access_token     TEXT,
+            ip               TEXT,
+            created          DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    # Migreringar för befintliga DB
+    try:
+        conn.execute("ALTER TABLE purchases ADD COLUMN used_at DATETIME")
+    except Exception:
+        pass
+    try:
+        conn.execute("ALTER TABLE purchases ADD COLUMN reading_done INTEGER DEFAULT 0")
+    except Exception:
+        pass
+    conn.execute('''
         CREATE TABLE IF NOT EXISTS consent_log (
             id             INTEGER PRIMARY KEY AUTOINCREMENT,
             ip             TEXT,

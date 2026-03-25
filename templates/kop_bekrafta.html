@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bekräfta köp — JJ Universe</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <style>
+    body { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 16px; }
+    .box {
+      background: linear-gradient(160deg, #1a0048, #0d0020);
+      border:1px solid rgba(155,48,255,0.3);
+      border-radius:20px;
+      padding:48px 40px;
+      max-width:480px;
+      width:100%;
+      box-shadow: 0 0 60px rgba(155,48,255,0.15);
+    }
+    h1 { font-family:'Cinzel',serif; font-size:1.3rem; color:#fff; letter-spacing:0.1em; margin-bottom:4px; text-align:center; }
+    .price-tag { text-align:center; font-size:2.2rem; color:#fff; font-weight:bold; margin:20px 0 8px; }
+    .price-tag span { font-size:1rem; color:#9980bb; font-weight:normal; }
+    .pkg-desc { font-family:'Crimson Text',serif; color:#c8b4ff; font-size:0.95rem; text-align:center; margin-bottom:32px; }
+    .divider { border:none; border-top:1px solid rgba(155,48,255,0.2); margin:24px 0; }
+    .section-title { font-size:0.8rem; color:#9980bb; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:16px; }
+    .checkbox-item { display:flex; align-items:flex-start; gap:12px; margin-bottom:14px; cursor:pointer; }
+    .checkbox-item input[type="checkbox"] {
+      appearance:none; -webkit-appearance:none;
+      width:20px; height:20px; min-width:20px;
+      border:1px solid rgba(155,48,255,0.5); border-radius:5px;
+      background:rgba(255,255,255,0.04); cursor:pointer; margin-top:2px;
+      transition:background 0.2s; position:relative;
+    }
+    .checkbox-item input:checked { background:linear-gradient(135deg,#5b00a8,#9b30ff); border-color:#9b30ff; }
+    .checkbox-item input:checked::after { content:'✓'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:0.75rem; font-weight:bold; }
+    .checkbox-item label { font-family:'Crimson Text',serif; color:#ede0ff; font-size:0.9rem; line-height:1.5; cursor:pointer; }
+    .checkbox-item label a { color:#9b30ff; }
+    .pay-btn {
+      width:100%; margin-top:24px;
+      background:linear-gradient(135deg,#3a006b,#5b00a8);
+      color:rgba(255,255,255,0.35);
+      border:1px solid rgba(155,48,255,0.2);
+      border-radius:10px; padding:14px;
+      font-family:'Cinzel',serif; font-size:0.9rem; letter-spacing:0.1em;
+      cursor:not-allowed; transition:all 0.3s;
+    }
+    .pay-btn.active {
+      background:linear-gradient(135deg,#5b00a8,#9b30ff);
+      color:#fff; border-color:rgba(155,48,255,0.5);
+      cursor:pointer; box-shadow:0 0 20px rgba(155,48,255,0.3);
+    }
+    .pay-btn.active:hover { box-shadow:0 0 35px rgba(155,48,255,0.5); transform:translateY(-1px); }
+    .back { color:#9980bb; text-decoration:none; font-size:0.85rem; display:block; text-align:center; margin-top:16px; }
+    .back:hover { color:#fff; }
+    .stripe-note { text-align:center; color:#6650a0; font-size:0.75rem; margin-top:12px; font-family:'Crimson Text',serif; }
+  </style>
+</head>
+<body>
+<canvas id="stars-canvas"></canvas>
+
+<div class="box">
+  <h1>{{ pkg.name }}</h1>
+  <div class="price-tag">{{ (pkg.price // 100) }} <span>kr inkl. moms</span></div>
+  <div class="pkg-desc">{{ pkg.desc }}</div>
+
+  <hr class="divider">
+  <p class="section-title">Bekräfta innan betalning</p>
+
+  <label class="checkbox-item">
+    <input type="checkbox" id="cb-age">
+    <span>Jag bekräftar att jag är 18 år eller äldre</span>
+  </label>
+
+  <label class="checkbox-item">
+    <input type="checkbox" id="cb-entertainment">
+    <span>Jag förstår att detta är underhållning — inte medicinsk, psykologisk eller juridisk rådgivning</span>
+  </label>
+
+  <label class="checkbox-item">
+    <input type="checkbox" id="cb-withdrawal">
+    <span>Jag samtycker till att leveransen påbörjas direkt och att <strong>ångerrätten därmed upphör</strong>.
+    Se <a href="/payment-terms" target="_blank">betalningsvillkoren</a></span>
+  </label>
+
+  <label class="checkbox-item">
+    <input type="checkbox" id="cb-norefund">
+    <span>Jag förstår att inga återbetalningar ges om jag är missnöjd med tolkningens innehåll</span>
+  </label>
+
+  <button class="pay-btn" id="pay-btn" disabled>Gå till betalning ✦</button>
+  <p class="stripe-note">🔒 Säker betalning via Stripe · Vi lagrar inga kortuppgifter</p>
+  <a href="/kop" class="back">← Byt paket</a>
+</div>
+
+<script>
+const cbs = ['cb-age','cb-entertainment','cb-withdrawal','cb-norefund'];
+const btn = document.getElementById('pay-btn');
+
+function update() {
+  const all = cbs.every(id => document.getElementById(id).checked);
+  btn.disabled = !all;
+  btn.classList.toggle('active', all);
+}
+cbs.forEach(id => document.getElementById(id).addEventListener('change', update));
+
+btn.addEventListener('click', async () => {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Skapar betalning…';
+
+  const res  = await fetch('/api/create-checkout-session', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({package: '{{ package }}'})
+  });
+  const data = await res.json();
+  if (data.url) {
+    window.location.href = data.url;
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'Gå till betalning ✦';
+    btn.classList.add('active');
+    alert('Något gick fel, försök igen.');
+  }
+});
+</script>
+</body>
+</html>

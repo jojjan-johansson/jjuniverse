@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Betalning klar — JJ Universe</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <style>
+    body { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 16px; }
+    .box {
+      background:linear-gradient(160deg,#1a0048,#0d0020);
+      border:1px solid rgba(155,48,255,0.3);
+      border-radius:20px;
+      padding:48px 40px;
+      max-width:480px; width:100%;
+      text-align:center;
+      box-shadow:0 0 60px rgba(155,48,255,0.2);
+      animation: fadeIn 0.6s ease;
+    }
+    .star { font-size:3rem; margin-bottom:16px; display:block; }
+    h1 { font-family:'Cinzel',serif; font-size:1.4rem; color:#fff; letter-spacing:0.1em; margin-bottom:12px; }
+    .pkg-name { color:#c8a8ff; font-family:'Crimson Text',serif; font-size:1.1rem; font-style:italic; margin-bottom:24px; }
+    p { font-family:'Crimson Text',serif; color:#c8b4ff; font-size:0.95rem; line-height:1.6; margin-bottom:12px; }
+    .email { color:#9b30ff; }
+    .btn {
+      display:inline-block;
+      margin-top:24px;
+      background:linear-gradient(135deg,#5b00a8,#9b30ff);
+      color:#fff; text-decoration:none;
+      border-radius:10px; padding:14px 32px;
+      font-family:'Cinzel',serif; font-size:0.9rem; letter-spacing:0.08em;
+      box-shadow:0 0 20px rgba(155,48,255,0.3);
+      transition:box-shadow 0.2s, transform 0.2s;
+    }
+    .btn:hover { box-shadow:0 0 35px rgba(155,48,255,0.5); transform:translateY(-2px); }
+  </style>
+</head>
+<body>
+<canvas id="stars-canvas"></canvas>
+<div class="box">
+  <span class="star">✦</span>
+  <h1>Betalning genomförd!</h1>
+  <p class="pkg-name">{{ pkg.name }}</p>
+  <p>Din läsning är redo. Stjärnorna väntar på dig.</p>
+  {% if email %}
+  <p>Ett kvitto har skickats till <span class="email">{{ email }}</span></p>
+  {% endif %}
+  <button class="btn" id="start-btn">Påbörja min läsning ✦</button>
+  <script>
+    document.getElementById('start-btn').addEventListener('click', () => {
+      // replace() tar bort success-sidan från historiken — kan inte backa hit
+      window.location.replace('/');
+    });
+  </script>
+</div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

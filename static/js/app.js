@@ -290,6 +290,12 @@ async function loadDeck() {
 
 // ── Section navigation ──────────────────────────────────────────────────────
 function showSection(id) {
+  // Köpt session — kan inte gå tillbaka till intro
+  const pkg = (typeof PURCHASE_PACKAGE !== 'undefined') ? PURCHASE_PACKAGE : '';
+  if (pkg && id === 'intro-section') {
+    window.location.href = '/kop';
+    return;
+  }
   ['intro-section','question-section','spread-section','reading-section'].forEach(s => {
     const el = document.getElementById(s);
     if (el) el.hidden = s !== id;
@@ -575,11 +581,27 @@ function placeCardInSpread(card, index) {
   }, 300);
 }
 
+// ── Skydd mot att navigera bort under läsning ────────────────────────────────
+function lockNavigation() {
+  window._navLocked = true;
+  window.addEventListener('beforeunload', _beforeUnloadHandler);
+}
+function unlockNavigation() {
+  window._navLocked = false;
+  window.removeEventListener('beforeunload', _beforeUnloadHandler);
+}
+function _beforeUnloadHandler(e) {
+  e.preventDefault();
+  e.returnValue = '';
+}
+
 // ── Reveal reading ───────────────────────────────────────────────────────────
 document.getElementById('reveal-btn')?.addEventListener('click', async () => {
   buildDrawnSummary();
   showSection('reading-section');
+  lockNavigation();
   await streamReading();
+  unlockNavigation();
 });
 
 function buildDrawnSummary() {
@@ -778,6 +800,8 @@ async function sendFollowup() {
   if (followupCount >= MAX_FOLLOWUPS) {
     document.getElementById('followup-input-wrap').hidden = true;
     document.getElementById('followup-done').hidden = false;
+    document.getElementById('card-followup-btn').hidden = true;
+    document.getElementById('card-followup-panel').hidden = true;
   } else {
     input.disabled = false;
     document.getElementById('followup-btn').disabled = false;
@@ -816,19 +840,21 @@ function resetCardFollowup() {
   cardFollowupReady = false;
   document.getElementById('card-followup-input').value = '';
   document.getElementById('card-followup-submit').disabled = true;
-  document.getElementById('card-followup-draw-hint') &&
-    (document.querySelector('.card-followup-draw-hint').textContent = 'Klicka på kortet för att dra det');
+  document.querySelector('.card-followup-draw-hint').textContent = 'Klicka på kortet för att dra det';
 
-  // Återställ kort till baksida
-  const cardEl = document.getElementById('card-followup-card');
-  cardEl.className = 'card pool-card';
-  cardEl.innerHTML = `
+  // Klona elementet för att ta bort alla gamla event listeners
+  const old = document.getElementById('card-followup-card');
+  const newEl = old.cloneNode(false);
+  newEl.id = 'card-followup-card';
+  newEl.className = 'card pool-card';
+  newEl.innerHTML = `
     <div class="card-inner">
       <div class="card-back">
         <div class="card-back-inner"><span class="card-back-star">✦</span></div>
       </div>
     </div>`;
-  cardEl.onclick = drawCardFollowup;
+  newEl.onclick = drawCardFollowup;
+  old.parentNode.replaceChild(newEl, old);
 }
 
 function drawCardFollowup() {
@@ -883,6 +909,7 @@ function checkCardFollowupReady() {
 document.getElementById('card-followup-submit')?.addEventListener('click', async () => {
   const q = document.getElementById('card-followup-input').value.trim();
   if (!q || !cardFollowupDrawnCard) return;
+  if (followupCount >= MAX_FOLLOWUPS) return;
 
   const card = cardFollowupDrawnCard;
   const cardDesc = `${card.name_sv}${card.reversed ? ' [OMVÄND]' : ''}`;
@@ -961,13 +988,26 @@ document.getElementById('card-followup-submit')?.addEventListener('click', async
   if (followupCount >= MAX_FOLLOWUPS) {
     document.getElementById('followup-input-wrap').hidden = true;
     document.getElementById('followup-done').hidden = false;
+    document.getElementById('card-followup-btn').hidden = true;
+    document.getElementById('card-followup-panel').hidden = true;
   }
 });
 
 // ── New reading button ───────────────────────────────────────────────────────
 document.getElementById('new-reading-btn')?.addEventListener('click', () => {
-  resetState();
-  showSection('intro-section');
+  const btn = document.getElementById('new-reading-btn');
+  if (btn.dataset.purchase === 'true') {
+    unlockNavigation();
+    window.location.href = '/kop';
+  } else {
+    resetState();
+    showSection('intro-section');
+  }
+});
+
+document.getElementById('end-session-btn')?.addEventListener('click', () => {
+  unlockNavigation();
+  window.location.href = '/session/end';
 });
 
 function resetState() {
@@ -1061,7 +1101,7 @@ document.getElementById('send-email-submit')?.addEventListener('click', async ()
       status.textContent = '✦ Läsningen har skickats till ' + email;
     } else {
       status.style.color = '#ff9090';
-      status.textContent = 'Något gick fel. Försök igen.';
+      status.textContent = 'Fel: ' + (data.error || 'Okänt fel');
     }
   } catch {
     status.style.color = '#ff9090';
@@ -1070,7 +1110,38 @@ document.getElementById('send-email-submit')?.addEventListener('click', async ()
 });
 
 // ── Init ─────────────────────────────────────────────────────────────────────
-// initStars() körs redan tidigt — se ovan
 if (document.getElementById('intro-section')) {
-  loadDeck();
+  (async () => {
+    await loadDeck();
+
+    const pkg = (typeof PURCHASE_PACKAGE !== 'undefined') ? PURCHASE_PACKAGE : '';
+    if (pkg) {
+      // Gästköp — hoppa direkt till köpt spread
+      document.getElementById('intro-section').hidden = true;
+
+      // Göm Tillbaka-knappen
+      const backBtn = document.getElementById('back-to-intro');
+      if (backBtn) backBtn.hidden = true;
+
+      // Auto-välj spread
+      state.spreadType = pkg;
+      setupQuestions(pkg);
+      showSection('question-section');
+
+      // Bakåtknapp — visa varning innan sessionen lämnas
+      history.replaceState(null, '', '/');
+      history.pushState(null, '', '/');
+      window.addEventListener('popstate', () => {
+        // Lägg tillbaka en historikpost så knappen fungerar nästa gång också
+        history.pushState(null, '', '/');
+        const leave = confirm(
+          'Vill du lämna din läsning?\n\n' +
+          'Din session kan gå förlorad och du kan behöva köpa en ny läsning.'
+        );
+        if (leave) {
+          window.location.replace('/session/check');
+        }
+      });
+    }
+  })();
 }

@@ -2,7 +2,7 @@
 
 ## Vad är JJ Universe?
 
-JJ Universe är en webb-app för tarotläsning med AI-tolkning. Användare loggar in, väljer en läggningstyp, drar kort och får en personlig tolkning via Claude AI (Anthropic). Appen är byggd med Python/Flask och körs på en VPS-server.
+JJ Universe är en betaltjänst för AI-genererad tarotläsning. Besökare köper en session via Stripe, väljer en läggningstyp, drar kort och får en personlig tolkning via Claude AI. Inga konton krävs — man betalar direkt som gäst.
 
 ---
 
@@ -12,10 +12,11 @@ JJ Universe är en webb-app för tarotläsning med AI-tolkning. Användare logga
 |-----|-----------|
 | Backend | Python 3, Flask |
 | AI | Anthropic Claude Haiku (`claude-haiku-4-5`) |
-| Databas | SQLite (användarkonton) |
+| Databas | SQLite (`users.db`) |
+| Betalning | Stripe Checkout |
+| E-post | Resend (läsningar + access-mail) |
 | Frontend | HTML, CSS, Vanilla JavaScript |
-| Kortbilder | PNG/JPG, egengenererade via ChatGPT |
-| Produktion | Gunicorn + Nginx |
+| Produktion | Gunicorn + Caddy (HTTPS auto) |
 
 ---
 
@@ -23,25 +24,39 @@ JJ Universe är en webb-app för tarotläsning med AI-tolkning. Användare logga
 
 ```
 jjuniverse/
-├── app.py                  # Flask-app, alla routes och AI-logik
-├── cards.py                # Lista med alla 78 tarotkort
-├── database.py             # SQLite-setup och anslutning
-├── generate_cards.py       # Genererar reservbilder med Pillow (om egna saknas)
-├── requirements.txt        # Python-beroenden
-├── .env                    # API-nycklar (läggs INTE i Git)
-├── users.db                # SQLite-databas (läggs INTE i Git)
+├── app.py                    # Flask-app — alla routes och logik
+├── cards.py                  # Lista med alla 78 tarotkort
+├── database.py               # SQLite-setup, tabeller och hjälpfunktioner
+├── requirements.txt          # Python-beroenden
+├── .env                      # API-nycklar (läggs INTE i Git)
+├── users.db                  # SQLite-databas (läggs INTE i Git)
+├── GUIDE.md                  # Denna fil
 ├── templates/
-│   ├── index.html          # Huvud-app (kräver inloggning)
-│   └── login.html          # Inloggning och registrering
+│   ├── index.html            # Huvud-app (kräver köpt session eller admin)
+│   ├── login.html            # Inloggning, registrering och köp-knapp
+│   ├── consent.html          # Villkorssida — visas alltid för nya besökare
+│   ├── kop.html              # Paketval med priser
+│   ├── kop_bekrafta.html     # Bekräftelse + checkboxar innan betalning
+│   ├── payment_success.html  # Visas efter lyckad betalning
+│   ├── payment_cancel.html   # Visas om betalning avbryts
+│   ├── access_invalid.html   # Ogiltig access-token
+│   ├── access_used.html      # Access-token redan använd
+│   ├── terms.html            # Användarvillkor
+│   ├── privacy.html          # Integritetspolicy
+│   ├── payment_terms.html    # Betalningsvillkor
+│   ├── admin_login.html      # Admin-inloggning (/star)
+│   └── admin_panel.html      # Admin-panel (översikt/statistik/säkerhet)
 └── static/
     ├── css/
-    │   ├── style.css       # Huvudstil — mörkt mystiskt tema
-    │   └── login.css       # Stil för inloggningssidan
+    │   ├── style.css         # Huvudstil — mörkt mystiskt tema
+    │   └── login.css         # Stil för inloggningssidan
     ├── js/
-    │   └── app.js          # All frontend-logik
+    │   ├── app.js            # All frontend-logik
+    │   └── ambient.js        # Stjärnfält + ambient-ljud
+    ├── favicon.png
     └── images/
-        ├── cards/          # Kortbilder (78 st, används av appen)
-        └── mycards/        # Originalkort uppladdade av ägaren
+        ├── cards/            # Kortbilder (78 st)
+        └── mycards/          # Originalkort uppladdade av ägaren
 ```
 
 ---
@@ -49,126 +64,315 @@ jjuniverse/
 ## Miljövariabler (.env)
 
 ```env
-ANTHROPIC_API_KEY=sk-ant-...    # API-nyckel från console.anthropic.com
-SECRET_KEY=...                   # Slumpmässig sträng för Flask-sessioner
-RESEND_API_KEY=re_...            # API-nyckel från resend.com (för att maila läsningar)
-ADMIN_USERNAME=jjadmin           # Admin-användarnamn för /star
-ADMIN_PASSWORD=...               # Admin-lösenord för /star
+ANTHROPIC_API_KEY=sk-ant-...        # Från console.anthropic.com
+SECRET_KEY=...                       # Slumpsträng för Flask-sessioner
+RESEND_API_KEY=re_...                # Från resend.com (skicka mail)
+ADMIN_USERNAME=jjadmin               # Admin-inlogg för /star
+ADMIN_PASSWORD=kokobahia3535A!       # Admin-lösenord för /star
+STRIPE_PUBLIC_KEY=pk_test_...        # Stripe publika nyckel (test/live)
+STRIPE_SECRET_KEY=sk_test_...        # Stripe hemliga nyckel (test/live)
+STRIPE_WEBHOOK_SECRET=whsec_...      # Stripe webhook-signatur (valfritt)
 ```
 
-> **OBS:** Dela aldrig dessa värden i chatt eller i git. .env är listad i .gitignore.
+> **OBS:** Dela aldrig dessa värden i chatt eller i git. `.env` är listad i `.gitignore`.
 
-> **.env får aldrig läggas i Git.** Den är listad i `.gitignore`.
+---
 
-### ⚠️ Skriva .env på servern — gör SÅ HÄR
+## Betalningspaket & priser
 
-API-nyckeln är lång och **får inte kopieras direkt i terminalen** — radbrytningar förstör filen.
-Dela upp nyckeln i kortare delar och sätt ihop med bash-variabler:
+| Paket | Nyckel | Pris | Innehåll |
+|-------|--------|------|----------|
+| En Fråga | `single` | 60 kr | 1 läggning (3 kort) + 3 följdfrågor |
+| Tre Frågor | `triple` | 150 kr | 3 läggningar + 3 följdfrågor/läggning |
+| Årsstjärnan | `year` | 300 kr | 13 kort (helår) + 3 följdfrågor |
 
-```bash
-# Dela upp API-nyckeln i bitar (justera delarna efter din nyckel)
-P1='sk-ant-api03-FÖRSTA_DELEN'
-P2='ANDRA_DELEN'
-P3='TREDJE_DELEN'
-SK='din-secret-key-här'
-{ echo "ANTHROPIC_API_KEY=${P1}${P2}${P3}"; echo "SECRET_KEY=${SK}"; } > ~/apps/jjuniverse/.env
+Priserna anges i **öre** i koden (`6000` = 60 kr). Definerade i `PACKAGES` i `app.py`.
 
-# Verifiera att filen ser rätt ut ($ = radbrytning, ska vara EN rad per variabel)
-cat -A ~/apps/jjuniverse/.env
+---
+
+## Användarflöde (kund)
+
 ```
-
-Om filen är trasig syns det med `python-dotenv could not parse statement` i loggarna:
-```bash
-sudo journalctl -u jjuniverse --no-pager | tail -20
+1. Besök jjuniverse.se
+       ↓
+2. /welcome — Villkorssida (4 checkboxar, sparas i DB)
+       ↓
+3. /login — Inloggningssida
+   - Kan skapa konto (ger INTE fri tillgång — måste ändå köpa)
+   - Kan logga in (ger INTE fri tillgång — måste ändå köpa)
+   - Klickar "Köp en läsning" → /kop
+       ↓
+4. /kop — Välj paket (single / triple / year)
+       ↓
+5. /kop/bekrafta — Bekräfta med 4 checkboxar (ångerrätt etc.)
+       ↓
+6. Stripe Checkout — Betalning med kort
+       ↓
+7. /payment/success — Bekräftelsesida
+   - Session sätts: purchase_token + purchase_package
+   - Access-mail skickas automatiskt till kundens e-post
+   - Kunden klickar "Påbörja min läsning"
+       ↓
+8. / (index) — Appen, hoppar direkt till köpt läggningstyp
+       ↓
+9. Läsning genomförs (reading_done=1 sätts i DB)
+       ↓
+10. Kunden kan:
+    - Ställa upp till 3 följdfrågor (text)
+    - Göra "Följdfråga med kort" (extra kort)
+    - Skicka läsningen till sin e-post
+    - Klicka "Ny läsning" → /kop (ny betalning krävs)
+    - Klicka "Logga ut" → sessionen rensas → /login
 ```
 
 ---
 
-## Kortfilnamn
+## Sessionssystem
 
-Kortbilderna ligger i `static/images/cards/` och följer detta mönster:
+Appen använder Flask-sessioner (krypterade cookies).
 
-| Suit | Filer |
-|------|-------|
-| Stora Arkanan | `major_00.jpg` – `major_21.jpg` |
-| Bägare (Cups) | `cups_01.jpg` – `cups_14.jpg` |
-| Stavar (Wands) | `wands_01.jpg` – `wands_14.jpg` |
-| Svärd (Swords) | `swords_01.jpg` – `swords_14.jpg` |
-| Pentagram (Pentacles) | `pentacles_01.jpg` – `pentacles_14.jpg` |
+| Sessionsvariabel | Vad den gör |
+|-----------------|-------------|
+| `consent_given` | Satt när villkor godkänts. Krävs för att komma förbi /welcome |
+| `purchase_token` | Unik token kopplad till ett köp i DB. Ger tillgång till appen |
+| `purchase_package` | Vilken typ köptes (`single`/`triple`/`year`). Styr auto-val i appen |
+| `user_id` | Satt om man loggat in med konto. Ger INTE fri tillgång |
+| `username` | Kontonamn (visas i appen om inloggad) |
+| `admin_logged_in` | Satt vid admin-inlogg. Ger fri tillgång till hela appen |
 
-Lägg nya bilder i `static/images/mycards/` och kör kopieringsskriptet nedan.
+### Accessskydd
 
-### Kopiera egna kort
-```bash
-python3 - <<'EOF'
-import shutil, os
-src = "static/images/mycards"
-dst = "static/images/cards"
-mapping = {
-    # Lägg till dina filer här: "mittfilnamn.png": "cards_XX.jpg"
-}
-for s, d in mapping.items():
-    sp = os.path.join(src, s)
-    dp = os.path.join(dst, d)
-    if os.path.exists(sp):
-        shutil.copy2(sp, dp)
-        print(f"✓ {s} → {d}")
-EOF
+- Alla behöver `purchase_token` **eller** `admin_logged_in` för att komma in i appen
+- `login_required`-dekoratorn skyddar alla API-routes
+- Om `purchase_token` saknas → redirect till `/login`
+
+---
+
+## Bakåtknapp-skydd (anti-fusk)
+
+En kund som navigerar bakåt efter en läsning ska inte kunna göra en ny läsning gratis.
+
+**Lösning — tre lager:**
+
+**1. JS history-manipulation** körs när köpsessionen startar:
+```javascript
+history.replaceState(null, '', '/');
+history.pushState(null, '', '/');
+```
+Lägger till ett extra historik-steg så att bakåtknappen triggar `popstate` istället för att lämna sidan direkt.
+
+**2. Confirm-dialog** visas vid `popstate` (bakåtknapp):
+```javascript
+window.addEventListener('popstate', () => {
+  history.pushState(null, '', '/');  // tryck tillbaka historiken igen
+  const leave = confirm(
+    'Vill du lämna din läsning?\n\n' +
+    'Din session kan gå förlorad och du kan behöva köpa en ny läsning.'
+  );
+  if (leave) {
+    window.location.replace('/session/check');
+  }
+});
+```
+- Kunden väljer **Avbryt** → stannar kvar på sidan, ingenting händer
+- Kunden väljer **OK** → server-kontroll via `/session/check`
+
+**3. `/session/check`** (Flask-route) är den definitiva serverskyddet:
+- `reading_done=0` → redirect till `/` (kan fortsätta läsningen)
+- `reading_done=1` → rensar session → redirect till `/kop` (ny betalning krävs)
+- Ingen `purchase_token` alls → redirect till `/kop`
+
+**`reading_done`** sätts till `1` i DB direkt när `/api/reading` anropas (innan streaming startar). Det innebär att om kunden stänger webbläsaren mitt i läsningen räknas sessionen som förbrukad.
+
+**OBS:** `beforeunload`-skyddet (som visas vid sidstängning/reload) aktiveras enbart under pågående AI-streaming — inte hela sessionen — för att inte störa normal navigering.
+
+---
+
+## Routes (app.py)
+
+### Publika
+| Route | Metod | Beskrivning |
+|-------|-------|-------------|
+| `/welcome` | GET | Villkorssida |
+| `/api/consent` | POST | Sparar godkännande i DB |
+| `/login` | GET/POST | Inloggning + registrering |
+| `/register` | POST | Skapa konto |
+| `/logout` | GET | Rensar hela sessionen |
+| `/kop` | GET | Paketval |
+| `/kop/bekrafta` | GET | Bekräftelse innan betalning |
+| `/api/create-checkout-session` | POST | Skapar Stripe-session, returnerar URL |
+| `/payment/success` | GET | Bekräftelse efter betalning |
+| `/payment/cancel` | GET | Avbruten betalning |
+| `/webhook/stripe` | POST | Stripe-webhook (uppdaterar DB) |
+| `/access/<token>` | GET | Engångslänk för att återfå tillgång |
+| `/session/end` | GET | Loggar ut kunden (rensar session, behåller consent) |
+| `/session/check` | GET | Kontrollerar reading_done vid bakåtnavigering |
+| `/terms` | GET | Användarvillkor |
+| `/privacy` | GET | Integritetspolicy |
+| `/payment-terms` | GET | Betalningsvillkor |
+| `/api/free-card` | GET | Gratis dagskort (max 1/IP/dygn) |
+
+### Kräver purchase_token eller admin
+| Route | Metod | Beskrivning |
+|-------|-------|-------------|
+| `/` | GET | Huvud-appen |
+| `/api/reading` | POST | Startar AI-läsning (SSE streaming) |
+| `/api/followup` | POST | Följdfråga till AI |
+| `/api/send-reading` | POST | Skickar läsning via Resend |
+| `/api/cards` | GET | Hämtar kortlistan |
+
+### Admin (`/star`)
+| Route | Beskrivning |
+|-------|-------------|
+| `/star` | Admin-inloggning |
+| `/star/logout` | Loggar ut admin |
+| `/star/overview` | Statistik-översikt |
+| `/star/stats` | Besök och läsningar per dag |
+| `/star/security` | Säkerhetshändelser |
+
+**Admin-inlogg:** `jjadmin` / lösenord i `.env` (`ADMIN_PASSWORD`)
+**Admin har fri tillgång** till hela tarot-appen utan att behöva betala.
+
+---
+
+## Databas (SQLite — users.db)
+
+### Tabeller
+
+**`users`** — Konton
+```sql
+id, username (UNIQUE), password (hashad), created
+```
+
+**`purchases`** — Köp via Stripe
+```sql
+id, stripe_session_id (UNIQUE), email, package, status,
+access_token, ip, created, used_at, reading_done
+```
+- `status`: `pending` → `paid` → `used`
+- `reading_done`: `0` eller `1`
+- `access_token`: unik token för access-mail
+
+**`consent_log`** — Juridiskt bevis på att villkor godkänts
+```sql
+id, ip, email, terms_version, accepted_terms, accepted_age,
+accepted_entertainment, accepted_connectivity, accepted_withdrawal, created
+```
+
+**`free_card_draws`** — Begränsar gratis dagskort till 1/IP/dygn
+```sql
+ip, drawn (datum)
+```
+
+**`visits`** — Besöksloggning
+```sql
+id, ip, path, user_agent, created
+```
+
+**`security_events`** — Säkerhetshändelser
+```sql
+id, type, ip, detail, created
+```
+
+**`readings_log`** — Statistik över läsningar
+```sql
+id, user_id, spread_type, created
 ```
 
 ---
 
-## Läggningstyper
+## Stripe-integration
 
-### 1. En Fråga (`single`)
-- Användaren skriver en fråga
-- Drar 3 kort: **Grunden / Kärnan / Vägen framåt**
-- AI ger ett sammanhängande svar + råd
+### Flöde
+1. Frontend POST:ar till `/api/create-checkout-session` med paketkod
+2. Server skapar `stripe.checkout.Session` och sparar pending-köp i DB
+3. Kunden redirectas till Stripe's betalningssida
+4. Efter betalning: Stripe redirectar till `/payment/success?session_id=...`
+5. Server verifierar sessionen mot Stripe API, sätter status=`paid` i DB
+6. Flask-sessionen sätts med `purchase_token` och `purchase_package`
+7. Access-mail skickas automatiskt till kundens e-post
 
-### 2. Tre Frågor (`triple`)
-- Användaren skriver 3 frågor
-- Drar 9 kort (3 per fråga)
-- AI tolkar varje fråga + ett gemensamt råd
+### Testa lokalt
+Använd Stripe test-kortuppgifter: `4242 4242 4242 4242`, valfritt datum/CVC.
 
-### 3. Årsstjärnan (`year`)
-- Ingen fråga
-- Drar 13 kort: 12 månader (jan–dec) i cirkel + 1 mittort (årets tema)
-- AI ger månadsvis energi + råd för hela året
+### Byta till live-nycklar (driftsättning)
+Byt ut `pk_test_...` och `sk_test_...` mot live-nycklar i `.env` på servern.
 
 ---
 
-## Följdfrågor
+## E-post (Resend)
 
-Efter varje läsning kan användaren:
-1. Ställa upp till **10 textfrågor** i en chatt under tolkningen
-2. Klicka **"Följdfråga med kort"** för att dra 1 extra kort kopplat till en ny fråga
+Två sorters mail skickas:
+1. **Access-mail** — skickas automatiskt vid köp. Innehåller en engångslänk (`/access/<token>`) som ger tillbaka sessionen om kunden förlorar den.
+2. **Läsningsmail** — kunden kan klicka "Skicka till min mail" i appen och få hela läsningen skickad.
 
-Konversationshistoriken skickas med varje anrop så AI:n har full kontext.
+**OBS:** Resend kräver verifierad domän för att skicka till godtyckliga e-postadresser. Under development används `onboarding@resend.dev` som avsändare (begränsad). I produktion: verifiera `jjuniverse.se` i Resend-dashboarden och byt avsändare till `noreply@jjuniverse.se`.
 
 ---
 
 ## AI — Anthropic Claude
 
-- **Modell:** `claude-haiku-4-5` (billigaste, snabbaste)
-- **Streaming:** Server-Sent Events (SSE) — texten skrivs ut i realtid
-- **Systemprompt:** Definierar tonen — varm, jordnära, aldrig skrämmande
-- **Regler:** Döden = förändring, aldrig mörker/katastrof, alltid råd i slutet
+- **Modell:** `claude-haiku-4-5` (snabb och billig)
+- **Streaming:** Server-Sent Events (SSE) — text skrivs ut i realtid
+- **Systemprompt:** Varm, jordnära ton. Aldrig skrämmande. Döden = förändring.
+- **Avslutning:** Varje läsning avslutas med `✦ Råd:` på egen rad
+- **max_tokens:** 1500 för läsning och följdfrågor
 
 **Byta modell** (i `app.py`):
 ```python
-model="claude-haiku-4-5"      # Billig, snabb (~0.05-0.10 kr/läsning)
-model="claude-sonnet-4-6"     # Bättre kvalitet, dyrare
-model="claude-opus-4-6"       # Bäst kvalitet, dyrast
+model="claude-haiku-4-5"   # Standard — billig, snabb
+model="claude-sonnet-4-6"  # Bättre kvalitet
+model="claude-opus-4-6"    # Bäst kvalitet, dyrast
 ```
 
 ---
 
-## Inloggning
+## Följdfrågor
 
-- Konton lagras i `users.db` (SQLite)
-- Lösenord hashas med `werkzeug.security`
-- Sessioner hanteras med Flask `session` + `SECRET_KEY`
-- Alla API-routes skyddas med `@login_required`
+- Max **3 textfrågor** per läsning (enforced i JS + räknas av MAX_FOLLOWUPS)
+- Max **3 kortfrågor** per läsning (eget kort dras till varje fråga)
+- Konversationshistoriken skickas med varje anrop (full kontext för AI:n)
+- Korten stannar synliga i historiken vid kortfrågor
+
+---
+
+## Läggningstyper
+
+### En Fråga (`single`) — 60 kr
+- Kunden skriver 1 fråga
+- Drar 3 kort: Grunden / Kärnan / Vägen framåt
+- AI ger sammanhängande tolkning + råd
+
+### Tre Frågor (`triple`) — 150 kr
+- Kunden skriver 3 frågor
+- Drar 9 kort (3 per fråga)
+- AI tolkar varje fråga + gemensamt råd
+
+### Årsstjärnan (`year`) — 300 kr
+- Ingen fråga
+- 13 kort: 12 månader + 1 mittort (årets tema)
+- AI ger månadsvis energi (1-2 meningar/månad) + årsråd
+
+---
+
+## Juridik & villkor
+
+Alla villkorssidor finns och är länkade i footern:
+- `/terms` — Användarvillkor
+- `/privacy` — Integritetspolicy
+- `/payment-terms` — Betalningsvillkor (ångerrätt, ingen återbetalning)
+
+Checkboxar som måste godkännas **vid villkorssidan** (sparas i `consent_log`):
+1. Godkänner användarvillkor och integritetspolicy
+2. Förstår att tjänsten är underhållning (ej medicinsk rådgivning)
+3. Bekräftar 18+
+4. Förstår att internetuppkoppling krävs
+
+Checkboxar som måste godkännas **vid betalning** (kop_bekrafta):
+1. 18+
+2. Underhållning, ej rådgivning
+3. Avsäger sig ångerrätten (EU-krav för digital leverans)
+4. Inga återbetalningar vid missnöje
 
 ---
 
@@ -181,19 +385,29 @@ cd jjuniverse
 
 # 2. Skapa virtuell miljö
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate   # Windows: venv\Scripts\activate
 
 # 3. Installera beroenden
 pip install -r requirements.txt
 
-# 4. Skapa .env
-echo "ANTHROPIC_API_KEY=sk-ant-DIN_NYCKEL" > .env
-echo "SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')" >> .env
+# 4. Skapa .env (lägg in dina riktiga nycklar)
+cp .env.example .env   # eller skapa manuellt
 
 # 5. Starta
-python3 app.py
+python app.py
 # Öppna http://localhost:5000
 ```
+
+### Testa som kund (lokalt)
+1. `http://localhost:5000/logout` — rensa eventuell session
+2. Godkänn villkor → inloggningssida
+3. Klicka "Köp en läsning" → välj paket → bekräfta → betala med testkort `4242 4242 4242 4242`
+4. Klicka "Påbörja min läsning" → gör läsning
+
+### Testa som admin (lokalt)
+1. Gå till `http://localhost:5000/star`
+2. Logga in med `jjadmin` / `ADMIN_PASSWORD`
+3. Gå sedan till `http://localhost:5000` — fri tillgång
 
 ---
 
@@ -219,7 +433,7 @@ sudo systemctl restart jjuniverse
 sudo systemctl status jjuniverse
 ```
 
-### Systemd-tjänst (`/etc/systemd/system/jjuniverse.service`)
+### Systemd-tjänst
 ```ini
 [Unit]
 Description=JJ Universe Tarot
@@ -243,28 +457,13 @@ jjuniverse.se {
     reverse_proxy 127.0.0.1:5001
 }
 ```
-Caddy sköter HTTPS/SSL automatiskt. Starta om Caddy efter ändringar:
+
+### Installera nya paket på servern
 ```bash
-sudo systemctl reload caddy
+source ~/apps/jjuniverse/venv/bin/activate
+pip install resend stripe
+sudo systemctl restart jjuniverse
 ```
-
-### Skapa .env på servern (se avsnitt ovan om .env)
-
----
-
-## .gitignore
-
-```
-.env
-users.db
-venv/
-__pycache__/
-*.pyc
-*.log
-nohup.out
-```
-
-> Kortbilderna (`static/images/cards/` och `static/images/mycards/`) **är med i Git** för säker backup.
 
 ---
 
@@ -272,137 +471,45 @@ nohup.out
 
 | Problem | Lösning |
 |---------|---------|
-| "credit balance too low" | Fyll på kredit på console.anthropic.com |
-| Kort visas inte | Kontrollera att bildfilen finns i `static/images/cards/` |
-| Streaming fungerar inte | Kontrollera `X-Accel-Buffering: no` i Nginx |
+| `ERR_TOO_MANY_REDIRECTS` | Session-loop — gå till `/logout` för att rensa |
+| `ModuleNotFoundError: stripe` | `pip install stripe` i venv |
+| `ModuleNotFoundError: resend` | `pip install resend` i venv |
+| Stripe-betalning misslyckas | Kontrollera `STRIPE_SECRET_KEY` i `.env` |
+| Mail skickas inte | Verifiera domänen i Resend-dashboarden |
+| Streaming fungerar inte | Kontrollera `X-Accel-Buffering: no` i proxy |
 | Port 5000 upptagen | `fuser -k 5000/tcp` |
-| Login-loop | Kontrollera att `SECRET_KEY` är satt i `.env` |
+| DB-fel | `python -c "from database import init_db; init_db()"` |
+| Kunden kan inte backa | Korrekt — `/session/check` skyddar mot fusk |
 
 ---
 
 ## Support
 
 **Support-mail:** jjuniverse.support@gmail.com
-Används för: kundsupport, transaktionella mail (läsningar skickas hit från), Resend/SendGrid avsändaradress.
-
----
-
-## Betalning — Stripe (planerat)
-
-### Paket & priser (SEK inkl. moms)
-
-| Paket | Pris | Innehåll |
-|-------|------|----------|
-| En fråga | 60 kr | 1 läggning (3 kort) + 3 följdfrågor |
-| Tre frågor | 150 kr | 3 läggningar + 3 följdfrågor per läggning |
-| Årsstjärnan | 300 kr | 1 stor läggning (13 kort) + 3 följdfrågor |
-
-### Teknisk plan
-- **Betalningslösning:** Stripe Checkout (Stripe hanterar kortuppgifter, vi ser dem aldrig)
-- **Gästköp:** Tillåtet — man behöver inte konto för att betala
-- **Leverans:** Läsningen mailas automatiskt till angiven e-post när den är klar
-- **Valuta:** SEK
-- **Marknad:** Sverige (till att börja med)
-- **Webhook-verifiering:** Stripe-signatur verifieras på backend innan köp aktiveras
-- **Idempotency:** `stripe_session_id` sparas i DB så dubbla webhooks inte ger dubbla läsningar
-
-### Databastabeller som behövs
-```sql
-purchases (
-  id, email, stripe_session_id, package, status, created_at
-)
-```
-
-### En läggning = ett köp
-En köpt session = en läggning + upp till 3 följdfrågor. Sedan är sessionen klar. Vill man ha mer köper man ett nytt paket.
-
----
-
-## Juridik & villkor (att bygga)
-
-### Dokument som ska finnas
-- **Användarvillkor** — länk i footern
-- **Integritetspolicy** — länk i footern
-- **Betalningsvillkor** — visas direkt innan Stripe-checkout
-- **Cookie-banner** — enkel, bara "Okej"-knapp (endast nödvändiga cookies)
-
-### Obligatoriskt innehåll (checklista)
-
-**Ansvarsbegränsning (skyddsväst)**
-- Tjänsten ges "i befintligt skick"
-- Inget garanterat resultat
-- Ej ansvarig för indirekta skador (dåliga beslut baserade på läsning)
-
-**Ångerrätt (EU-lag — KRITISKT)**
-- Kunden måste avsäga sig ångerrätten
-- Checkbox vid köp: *"Jag samtycker till att leveransen påbörjas direkt och att ångerrätten därmed upphör"*
-- Utan detta kan kunder lagligt kräva pengarna tillbaka
-
-**Tjänstens natur (extra viktigt för tarot)**
-- AI-genererad tolkning
-- Ej vetenskapligt bevisad
-- Endast för personlig reflektion och underhållning
-- Ingen medicinsk, psykologisk, juridisk eller finansiell rådgivning
-- Du måste vara 18+ (checkbox vid köp)
-
-**Företagsinfo (måste finnas)**
-- Namn (företag eller privatperson)
-- E-post: jjuniverse.support@gmail.com
-- Land: Sverige
-
-**Betalning**
-- Betalning hanteras av Stripe
-- Vi lagrar inga kortuppgifter
-
-**Övrigt**
-- Rätt att stänga av/blockera användare och konton
-- Svensk lag gäller, tvister hanteras i Sverige
-- Tjänsten garanterar inte alltid tillgänglighet
-- Villkoren kan ändras när som helst
-
----
-
-## Admin-panel (planerat)
-
-### Åtkomst
-- URL: `jjuniverse.se/star`
-- Användarnamn: satt i `.env` som `ADMIN_USERNAME` (värde: jjadmin)
-- Lösenord: satt i `.env` som `ADMIN_PASSWORD`
-- Separat inloggning, helt separerat från vanliga användarkonton
-- Syns inte i källkoden eller frontend
-
-### Statistik att visa
-- Antal besök per dag/vecka (sidvisningar)
-- Antal registrerade användare
-- Antal läsningar per typ (single/triple/year)
-- Antal köp + intäkter (när Stripe är aktivt)
-
-### Säkerhetsövervakning
-- Misslyckade inloggningsförsök (många från samma IP = misstänkt)
-- Nya konton (ovanlig spike = möjlig bot-registrering)
-- 404-fel (scanning av routes)
-
-### Struktur
-Admin-panelen har egen meny med flikar:
-1. **Översikt** — nyckeltal i kortformat
-2. **Statistik** — grafer/tabeller med besök och läsningar
-3. **Säkerhet** — inloggningsförsök, misstänkt aktivitet
-4. **Användare** — lista, blockera konton (när betalning är på plats)
 
 ---
 
 ## Byggt & klart
 
-- [x] Admin-panel på `/star` med översikt, statistik och säkerhetsflik
-- [x] Besöksloggning, läsningsloggning, säkerhetshändelser (SQLite)
-- [x] Cookie-banner (localStorage)
-- [x] Användarvillkor (`/terms`), Integritetspolicy (`/privacy`), Betalningsvillkor (`/payment-terms`)
-- [x] "Skicka till min mail"-knapp med Resend-integration
-- [x] Kortförstoring via modal (klick på kort)
-- [x] Footer med villkorslänkar på alla sidor
+- [x] Stripe-betalning (single/triple/year — test och live-redo)
+- [x] Gästköp utan konto
+- [x] Villkorssida med 4 checkboxar (sparas juridiskt i DB)
+- [x] Betalningsbekräftelse med 4 checkboxar (ångerrätt)
+- [x] Access-mail med engångslänk vid köp
+- [x] Bakåtknapp-skydd (`/session/check` + `reading_done`)
+- [x] "Logga ut"-knapp efter läsning + "Avsluta" på köpsidan
+- [x] Admin-panel på `/star` (fri tillgång till appen, statistik, säkerhet)
+- [x] Gratis dagskort (1 per IP och dygn, på inloggningssidan)
+- [x] Kortförstoring via modal
+- [x] Skicka läsning till e-post (Resend)
+- [x] Cookie-banner
+- [x] Användarvillkor, Integritetspolicy, Betalningsvillkor
+- [x] Besöksloggning, läsningsloggning, säkerhetshändelser
 
-## Nästa steg
+## Möjliga nästa steg
 
-- [ ] Stripe-integration (betalning)
-- [ ] Fler läggningstyper (keltiskt kors, etc.)
-- [ ] E-post-verifiering vid registrering
+- [ ] Byta Resend-avsändare till `noreply@jjuniverse.se` (kräver DNS-verifiering)
+- [ ] Sätta upp Stripe webhook-secret i produktion
+- [ ] Byta Stripe test-nycklar mot live-nycklar
+- [ ] Fler läggningstyper (keltiskt kors etc.)
+- [ ] Erbjuda paket med rabatt (t.ex. prenumeration)
