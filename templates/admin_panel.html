@@ -248,6 +248,19 @@
   {% if tab == 'security' %}
   <h2>Säkerhet</h2>
 
+  <div class="section" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
+    <form method="POST" action="/star/cleanup" style="display:flex;gap:10px;align-items:flex-end;">
+      <div>
+        <label style="display:block;font-size:0.75rem;color:#9980bb;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Radera en specifik dag</label>
+        <input type="date" name="day" style="background:rgba(255,255,255,0.05);border:1px solid rgba(155,48,255,0.3);border-radius:8px;color:#ede0ff;padding:8px 12px;font-size:0.85rem;">
+      </div>
+      <button type="submit" style="background:rgba(255,80,80,0.2);border:1px solid rgba(255,80,80,0.4);color:#ff9090;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:0.8rem;">Radera dag</button>
+    </form>
+    <form method="POST" action="/star/cleanup" onsubmit="return confirm('Radera alla loggar äldre än 7 dagar?')">
+      <button type="submit" style="background:rgba(155,48,255,0.1);border:1px solid rgba(155,48,255,0.3);color:#9980bb;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:0.8rem;">Rensa &gt;7 dagar</button>
+    </form>
+  </div>
+
   <div class="section">
     <h3>Misstänkta IP-adresser (misslyckade inlogg)</h3>
     <table>

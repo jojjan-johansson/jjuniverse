@@ -40,6 +40,19 @@ PACKAGES = {
 # Initiera databasen vid start
 init_db()
 
+# Auto-rensning: radera loggar äldre än 7 dagar vid start
+def cleanup_old_logs():
+    try:
+        db = get_db()
+        db.execute("DELETE FROM security_events WHERE created < datetime('now', '-7 days')")
+        db.execute("DELETE FROM visits WHERE created < datetime('now', '-7 days')")
+        db.commit()
+        db.close()
+    except Exception as e:
+        app.logger.error(f"Cleanup error: {e}")
+
+cleanup_old_logs()
+
 # ── Hjälpfunktion: inloggningskrav ──────────────────────────────────────────
 def login_required(f):
     from functools import wraps
@@ -908,6 +921,25 @@ def admin_security():
         failed_logins=failed_logins,
         alerts=alerts
     )
+
+
+@app.route("/star/cleanup", methods=["POST"])
+@admin_required
+def admin_cleanup():
+    day = request.form.get("day", "")
+    try:
+        db = get_db()
+        if day:
+            db.execute("DELETE FROM security_events WHERE date(created) = ?", (day,))
+            db.execute("DELETE FROM visits WHERE date(created) = ?", (day,))
+        else:
+            db.execute("DELETE FROM security_events WHERE created < datetime('now', '-7 days')")
+            db.execute("DELETE FROM visits WHERE created < datetime('now', '-7 days')")
+        db.commit()
+        db.close()
+    except Exception as e:
+        app.logger.error(f"Manual cleanup error: {e}")
+    return redirect(url_for("admin_security"))
 
 
 if __name__ == "__main__":
