@@ -600,11 +600,6 @@ def payment_success():
                 pkg  = PACKAGES.get(purchase["package"], {})
                 email = cs.customer_details.email or ""
 
-                # Skicka access-mail automatiskt
-                if email:
-                    base_url = request.host_url.rstrip("/")
-                    send_access_email(email, purchase["access_token"], pkg.get("name",""), base_url)
-
                 return render_template("payment_success.html", pkg=pkg, email=email)
     except Exception:
         pass
@@ -682,79 +677,6 @@ def payment_terms():
 
 
 # ── Email — skicka läsning ────────────────────────────────────────────────────
-@app.route("/api/send-reading", methods=["POST"])
-@login_required
-def send_reading():
-    data        = request.get_json()
-    to_email    = data.get("email", "").strip()
-    spread_type = data.get("spread_type", "")
-    cards       = data.get("cards", [])
-    reading_text = data.get("reading_text", "")
-    followups   = data.get("followups", [])
-
-    if not to_email or "@" not in to_email:
-        return jsonify({"error": "Ogiltig e-postadress"}), 400
-
-    spread_names = {"single": "En Fråga", "triple": "Tre Frågor", "year": "Årsstjärnan"}
-    spread_label = spread_names.get(spread_type, "Tarotläsning")
-
-    cards_html = ""
-    for c in cards:
-        rev = " <em>(omvänd)</em>" if c.get("reversed") else ""
-        pos = f"<span style='color:#9b30ff;font-size:0.8em;'>{c.get('position','')}</span><br>" if c.get("position") else ""
-        cards_html += f"<div style='text-align:center;margin:0 8px;'>{pos}<strong style='color:#f0e6ff;'>{c.get('name_sv','')}</strong>{rev}</div>"
-
-    followups_html = ""
-    for fq in followups:
-        followups_html += f"""
-        <div style='margin-bottom:16px;'>
-            <div style='color:#c8b4ff;font-weight:bold;margin-bottom:4px;'>Fråga: {fq.get('q','')}</div>
-            <div style='color:#e8d8ff;'>{fq.get('a','')}</div>
-        </div>"""
-
-    html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head><meta charset='utf-8'></head>
-    <body style='background:#07000f;color:#ede0ff;font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:32px 24px;'>
-      <div style='text-align:center;margin-bottom:32px;'>
-        <h1 style='font-family:serif;color:#ffffff;letter-spacing:0.1em;margin-bottom:4px;'>✦ JJ Universe ✦</h1>
-        <p style='color:#9980bb;font-size:0.9em;'>Din {spread_label}</p>
-      </div>
-
-      <div style='display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-bottom:32px;'>
-        {cards_html}
-      </div>
-
-      <div style='border-top:1px solid rgba(155,48,255,0.3);padding-top:24px;margin-bottom:24px;'>
-        <h2 style='color:#c8a8ff;font-size:1em;letter-spacing:0.08em;margin-bottom:16px;'>DIN TOLKNING</h2>
-        <div style='line-height:1.8;color:#ede0ff;white-space:pre-line;'>{reading_text}</div>
-      </div>
-
-      {"<div style='border-top:1px solid rgba(155,48,255,0.3);padding-top:24px;margin-bottom:24px;'><h2 style='color:#c8a8ff;font-size:1em;letter-spacing:0.08em;margin-bottom:16px;'>FÖLJDFRÅGOR</h2>" + followups_html + "</div>" if followups_html else ""}
-
-      <div style='border-top:1px solid rgba(155,48,255,0.3);padding-top:16px;text-align:center;'>
-        <p style='color:#6650a0;font-size:0.75em;'>Denna läsning är enbart för underhållning och personlig reflektion.<br>
-        JJ Universe erbjuder inte medicinsk, psykologisk eller juridisk rådgivning.<br>
-        © {datetime.now().year} JJ Universe — <a href='https://jjuniverse.se' style='color:#9b30ff;'>jjuniverse.se</a></p>
-      </div>
-    </body>
-    </html>
-    """
-
-    try:
-        resend.Emails.send({
-            "from": "JJ Universe <onboarding@resend.dev>",
-            "to": [to_email],
-            "subject": f"✦ Din {spread_label} från JJ Universe",
-            "html": html
-        })
-        return jsonify({"ok": True})
-    except Exception as e:
-        app.logger.error(f"Resend error: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
 # ── Admin-panel ───────────────────────────────────────────────────────────────
 @app.route("/star", methods=["GET"])
 def admin_login():
