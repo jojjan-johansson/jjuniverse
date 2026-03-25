@@ -923,6 +923,17 @@ def admin_security():
     )
 
 
+@app.route("/star/consent")
+@admin_required
+def admin_consent():
+    db = get_db()
+    consents = db.execute(
+        "SELECT * FROM consent_log ORDER BY created DESC"
+    ).fetchall()
+    db.close()
+    return render_template("admin_panel.html", tab="consent", consents=consents, alerts=[])
+
+
 @app.route("/star/cleanup", methods=["POST"])
 @admin_required
 def admin_cleanup():

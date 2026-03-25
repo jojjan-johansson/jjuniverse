@@ -125,19 +125,11 @@
   <a href="/star/overview" class="{{ 'active' if tab == 'overview' else '' }}">Översikt</a>
   <a href="/star/stats"    class="{{ 'active' if tab == 'stats'    else '' }}">Statistik</a>
   <a href="/star/security" class="{{ 'active' if tab == 'security' else '' }}">Säkerhet</a>
+  <a href="/star/consent"  class="{{ 'active' if tab == 'consent'  else '' }}">Samtycken</a>
   <a href="/star/logout" class="nav-logout">Logga ut</a>
 </nav>
 
 <div class="main">
-
-  {% if alerts %}
-  <div class="alert-banner">
-    <h4>⚠ Säkerhetsvarning</h4>
-    <ul>
-      {% for a in alerts %}<li>{{ a }}</li>{% endfor %}
-    </ul>
-  </div>
-  {% endif %}
 
   <!-- ÖVERSIKT -->
   {% if tab == 'overview' %}
@@ -248,6 +240,15 @@
   {% if tab == 'security' %}
   <h2>Säkerhet</h2>
 
+  {% if alerts %}
+  <div class="alert-banner">
+    <h4>⚠ Säkerhetsvarning</h4>
+    <ul>
+      {% for a in alerts %}<li>{{ a }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
   <div class="section" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
     <form method="POST" action="/star/cleanup" style="display:flex;gap:10px;align-items:flex-end;">
       <div>
@@ -291,6 +292,29 @@
       <tr><td colspan="4" style="color:#6650a0;">Inga händelser</td></tr>
       {% endfor %}
     </table>
+  </div>
+  {% endif %}
+
+  <!-- SAMTYCKEN -->
+  {% if tab == 'consent' %}
+  <h2>Samtycken</h2>
+  <div class="section">
+    <h3>Godkända villkor ({{ consents|length }} st)</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Tid</th><th>IP</th><th>E-post</th><th>Version</th></tr>
+        {% for c in consents %}
+        <tr>
+          <td style="color:#9980bb;font-size:0.8rem;white-space:nowrap;">{{ c.created }}</td>
+          <td>{{ c.ip }}</td>
+          <td>{{ c.email or '—' }}</td>
+          <td style="color:#9980bb;font-size:0.8rem;">{{ c.terms_version }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="color:#6650a0;">Inga samtycken ännu</td></tr>
+        {% endfor %}
+      </table>
+    </div>
   </div>
   {% endif %}
 
