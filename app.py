@@ -3,7 +3,7 @@ import json
 import secrets
 from datetime import datetime
 from flask import (Flask, render_template, request, jsonify,
-                   Response, stream_with_context,
+                   Response, stream_with_context, make_response,
                    redirect, url_for, flash, session)
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
@@ -267,11 +267,14 @@ def index():
         session.pop("purchase_package", None)
         return redirect(url_for("kop"))
 
-    return render_template("index.html",
+    resp = make_response(render_template("index.html",
         username=session.get("username", "Gäst"),
         purchase_package=session.get("purchase_package", None),
         stripe_public_key=STRIPE_PUBLIC_KEY
-    )
+    ))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
 
 
 @app.route("/api/cards")
