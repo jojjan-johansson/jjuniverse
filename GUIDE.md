@@ -69,12 +69,24 @@ SECRET_KEY=...                       # Slumpsträng för Flask-sessioner
 RESEND_API_KEY=re_...                # Från resend.com (skicka mail)
 ADMIN_USERNAME=jjadmin               # Admin-inlogg för /star
 ADMIN_PASSWORD=kokobahia3535A!       # Admin-lösenord för /star
+ADMIN_EMAIL=jjuniverse.support@gmail.com  # Dit säkerhetsvarningar skickas
 STRIPE_PUBLIC_KEY=pk_test_...        # Stripe publika nyckel (test/live)
 STRIPE_SECRET_KEY=sk_test_...        # Stripe hemliga nyckel (test/live)
-STRIPE_WEBHOOK_SECRET=whsec_...      # Stripe webhook-signatur (valfritt)
+STRIPE_WEBHOOK_SECRET=               # Stripe webhook-signatur (valfritt, kan lämnas tom)
 ```
 
 > **OBS:** Dela aldrig dessa värden i chatt eller i git. `.env` är listad i `.gitignore`.
+
+### Lägga till saknade värden på servern
+
+Om en nyckel saknas på servern, lägg till den med:
+```bash
+nano ~/apps/jjuniverse/.env
+```
+Lägg till raden i slutet → `Ctrl+X` → `Y` → `Enter` → starta om:
+```bash
+sudo systemctl restart jjuniverse
+```
 
 ---
 
@@ -145,6 +157,31 @@ Appen använder Flask-sessioner (krypterade cookies).
 - Alla behöver `purchase_token` **eller** `admin_logged_in` för att komma in i appen
 - `login_required`-dekoratorn skyddar alla API-routes
 - Om `purchase_token` saknas → redirect till `/login`
+
+---
+
+## Säkerhetsvarningar
+
+### Vad triggar en varning?
+
+| Händelse | Gräns |
+|----------|-------|
+| Brute force mot admin | 5+ misslyckade inlogg från samma IP på 10 minuter |
+| Känslig fil-scanning | Någon försöker nå `.env`, `.git`, `config.php`, `aws-config`, `wp-login` |
+
+### Var syns varningarna?
+
+**Varningsbanner i admin-panelen** — visas högst upp på alla admin-sidor om en aktiv varning finns (senaste 10 min / 1 timme beroende på typ).
+
+**Varningsmail** — skickas till `ADMIN_EMAIL` i `.env` (max 1 gång per timme per typ för att undvika spam).
+
+### Loggrensning
+
+Loggar (`security_events` och `visits`) rensas automatiskt **vid varje serveromstart** om de är äldre än 7 dagar.
+
+Under **Säkerhet** i admin-panelen finns även två manuella knappar:
+- **Radera dag** — välj ett datum i datumväljaren och radera enbart den dagens loggar
+- **Rensa >7 dagar** — raderar allt äldre än 7 dagar direkt (samma som auto-rensningen)
 
 ---
 
@@ -228,7 +265,8 @@ window.addEventListener('popstate', () => {
 | `/star/logout` | Loggar ut admin |
 | `/star/overview` | Statistik-översikt |
 | `/star/stats` | Besök och läsningar per dag |
-| `/star/security` | Säkerhetshändelser |
+| `/star/security` | Säkerhetshändelser + loggrensning |
+| `/star/cleanup` | POST — raderar loggar (används av knapparna i admin-panelen) |
 
 **Admin-inlogg:** `jjadmin` / lösenord i `.env` (`ADMIN_PASSWORD`)
 **Admin har fri tillgång** till hela tarot-appen utan att behöva betala.
@@ -499,6 +537,9 @@ sudo systemctl restart jjuniverse
 - [x] Bakåtknapp-skydd (`/session/check` + `reading_done`)
 - [x] "Logga ut"-knapp efter läsning + "Avsluta" på köpsidan
 - [x] Admin-panel på `/star` (fri tillgång till appen, statistik, säkerhet)
+- [x] Säkerhetsvarningar — banner i admin + varningsmail vid brute force/fil-scanning
+- [x] Auto-rensning av loggar äldre än 7 dagar (vid serverstart)
+- [x] Manuell loggrensning per dag eller allt >7 dagar i admin-panelen
 - [x] Gratis dagskort (1 per IP och dygn, på inloggningssidan)
 - [x] Kortförstoring via modal
 - [x] Skicka läsning till e-post (Resend)
