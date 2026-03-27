@@ -28,6 +28,24 @@ ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 ADMIN_EMAIL    = os.environ.get("ADMIN_EMAIL", "")
 
+# SQL-fragment för att filtrera bort kända bottar/crawlers ur besöksstatistik
+BOT_UA_FILTER = """
+    AND user_agent NOT LIKE '%bot%' AND user_agent NOT LIKE '%Bot%'
+    AND user_agent NOT LIKE '%crawl%' AND user_agent NOT LIKE '%spider%'
+    AND user_agent NOT LIKE '%Spider%' AND user_agent NOT LIKE '%curl/%'
+    AND user_agent NOT LIKE '%wget/%' AND user_agent NOT LIKE '%python%'
+    AND user_agent NOT LIKE '%Go-http%' AND user_agent NOT LIKE '%Scrapy%'
+    AND user_agent NOT LIKE '%Semrush%' AND user_agent NOT LIKE '%Ahrefs%'
+    AND user_agent NOT LIKE '%MJ12bot%' AND user_agent NOT LIKE '%YandexBot%'
+    AND user_agent NOT LIKE '%Baiduspider%' AND user_agent NOT LIKE '%ia_archiver%'
+    AND user_agent NOT LIKE '%Slurp%' AND user_agent NOT LIKE '%facebookexternalhit%'
+    AND user_agent NOT LIKE '%DotBot%' AND user_agent NOT LIKE '%Java/%'
+    AND user_agent NOT LIKE '%zgrab%' AND user_agent NOT LIKE '%masscan%'
+    AND user_agent NOT LIKE '%nmap%' AND user_agent NOT LIKE '%nikto%'
+    AND user_agent NOT LIKE '%sqlmap%' AND user_agent IS NOT NULL
+    AND user_agent != ''
+"""
+
 # Dedup-skydd: undviker att skicka samma varningsmail flera gånger i rad
 _last_alert_sent: dict = {}
 
@@ -429,6 +447,7 @@ def create_checkout_session():
         success_url=base_url + "/payment/success?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=base_url + "/payment/cancel",
         metadata={"package": package, "ip": ip},
+        allow_promotion_codes=True,
     )
 
     token = secrets.token_urlsafe(32)
@@ -724,26 +743,36 @@ def admin_logout():
 @admin_required
 def admin_overview():
     db = get_db()
-    total_users    = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
     total_readings = db.execute("SELECT COUNT(*) FROM readings_log").fetchone()[0]
-    today_visits   = db.execute("SELECT COUNT(*) FROM visits WHERE date(created) = date('now')").fetchone()[0]
-    week_visits    = db.execute("SELECT COUNT(*) FROM visits WHERE created >= datetime('now', '-7 days')").fetchone()[0]
+    today_visits = db.execute(
+        f"SELECT COUNT(*) FROM visits WHERE date(created) = date('now') {BOT_UA_FILTER}"
+    ).fetchone()[0]
+    week_visits = db.execute(
+        f"SELECT COUNT(*) FROM visits WHERE created >= datetime('now', '-7 days') {BOT_UA_FILTER}"
+    ).fetchone()[0]
+    total_purchases = db.execute(
+        "SELECT COUNT(*) FROM purchases WHERE status IN ('paid','used')"
+    ).fetchone()[0]
+    today_purchases = db.execute(
+        "SELECT COUNT(*) FROM purchases WHERE status IN ('paid','used') AND date(created) = date('now')"
+    ).fetchone()[0]
+    purchases_by_package = db.execute(
+        "SELECT package, COUNT(*) as cnt FROM purchases WHERE status IN ('paid','used') GROUP BY package"
+    ).fetchall()
     readings_by_type = db.execute(
         "SELECT spread_type, COUNT(*) as cnt FROM readings_log GROUP BY spread_type"
-    ).fetchall()
-    recent_users = db.execute(
-        "SELECT username, created FROM users ORDER BY created DESC LIMIT 10"
     ).fetchall()
     alerts = get_security_alerts(db)
     db.close()
     return render_template("admin_panel.html",
         tab="overview",
-        total_users=total_users,
         total_readings=total_readings,
         today_visits=today_visits,
         week_visits=week_visits,
+        total_purchases=total_purchases,
+        today_purchases=today_purchases,
+        purchases_by_package=purchases_by_package,
         readings_by_type=readings_by_type,
-        recent_users=recent_users,
         alerts=alerts
     )
 
@@ -752,9 +781,10 @@ def admin_overview():
 @admin_required
 def admin_stats():
     db = get_db()
-    daily_visits = db.execute("""
+    daily_visits = db.execute(f"""
         SELECT date(created) as day, COUNT(*) as cnt
-        FROM visits GROUP BY date(created)
+        FROM visits WHERE 1=1 {BOT_UA_FILTER}
+        GROUP BY date(created)
         ORDER BY day DESC LIMIT 30
     """).fetchall()
     daily_readings = db.execute("""
@@ -762,8 +792,18 @@ def admin_stats():
         FROM readings_log GROUP BY date(created)
         ORDER BY day DESC LIMIT 30
     """).fetchall()
-    top_paths = db.execute("""
+    daily_purchases = db.execute("""
+        SELECT date(created) as day, COUNT(*) as cnt,
+               SUM(CASE WHEN package='single' THEN 1 ELSE 0 END) as single_cnt,
+               SUM(CASE WHEN package='triple' THEN 1 ELSE 0 END) as triple_cnt,
+               SUM(CASE WHEN package='year'   THEN 1 ELSE 0 END) as year_cnt
+        FROM purchases WHERE status IN ('paid','used')
+        GROUP BY date(created)
+        ORDER BY day DESC LIMIT 30
+    """).fetchall()
+    top_paths = db.execute(f"""
         SELECT path, COUNT(*) as cnt FROM visits
+        WHERE 1=1 {BOT_UA_FILTER}
         GROUP BY path ORDER BY cnt DESC LIMIT 15
     """).fetchall()
     alerts = get_security_alerts(db)
@@ -772,6 +812,7 @@ def admin_stats():
         tab="stats",
         daily_visits=daily_visits,
         daily_readings=daily_readings,
+        daily_purchases=daily_purchases,
         top_paths=top_paths,
         alerts=alerts
     )
