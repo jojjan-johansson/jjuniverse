@@ -81,10 +81,32 @@
   </div>
 
   <!-- Info + Köpknapp -->
+  <style>
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 18px rgba(195,155,255,0.5), 0 0 40px rgba(155,48,255,0.3); }
+      50%       { box-shadow: 0 0 30px rgba(195,155,255,0.9), 0 0 70px rgba(155,48,255,0.6); }
+    }
+    .info-glow-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #2a0060, #6b10cc);
+      color: #fff;
+      text-decoration: none;
+      border: 1px solid rgba(195,155,255,0.7);
+      border-radius: 10px;
+      padding: 16px 36px;
+      font-family: 'Cinzel', serif;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      animation: glow-pulse 2.2s ease-in-out infinite;
+      transition: transform 0.2s;
+    }
+    .info-glow-btn:hover {
+      transform: translateY(-2px);
+      animation-duration: 0.8s;
+    }
+  </style>
   <div style="text-align:center;margin-bottom:48px;display:flex;flex-direction:column;align-items:center;gap:16px;">
-    <a href="/om-lasningen" style="display:inline-block;background:rgba(155,48,255,0.1);color:#c39bff;text-decoration:none;border:1px solid rgba(155,48,255,0.4);border-radius:10px;padding:14px 32px;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.08em;transition:all 0.2s;" onmouseover="this.style.background='rgba(155,48,255,0.2)';this.style.color='#fff';this.style.borderColor='rgba(155,48,255,0.7)'" onmouseout="this.style.background='rgba(155,48,255,0.1)';this.style.color='#c39bff';this.style.borderColor='rgba(155,48,255,0.4)'">
-      ✦ Vad får jag egentligen? Se hur det fungerar
-    </a>
+    <a href="/om-lasningen" class="info-glow-btn">✦ Vad får jag egentligen? Se hur det fungerar ✦</a>
     <a href="/kop" style="display:inline-block;background:linear-gradient(135deg,#5b00a8,#9b30ff);color:#fff;text-decoration:none;border-radius:10px;padding:14px 32px;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.08em;box-shadow:0 0 20px rgba(155,48,255,0.3);">
       ✦ Köp en läsning
     </a>
