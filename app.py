@@ -50,9 +50,9 @@ BOT_UA_FILTER = """
 _last_alert_sent: dict = {}
 
 PACKAGES = {
-    "single": {"name": "En Fråga",    "desc": "1 läggning (3 kort) + 3 följdfrågor", "price": 6000},
-    "triple": {"name": "Tre Frågor",  "desc": "3 läggningar + 3 följdfrågor per läggning", "price": 15000},
-    "year":   {"name": "Årsstjärnan", "desc": "Helårsläggning (13 kort) + 3 följdfrågor", "price": 30000},
+    "single": {"name": "En Fråga",    "desc": "1 huvudfråga · 3 kort · + 3 följdfrågor med eget kort = totalt 4 frågor", "price": 6000},
+    "triple": {"name": "Tre Frågor",  "desc": "3 huvudfrågor · 9 kort · + 3 följdfrågor per fråga = totalt 12 frågor", "price": 15000},
+    "year":   {"name": "Årsstjärnan", "desc": "13 kort · ett för varje månad + årets tema · + 3 följdfrågor med eget kort", "price": 30000},
 }
 
 # Initiera databasen vid start
@@ -396,6 +396,11 @@ def save_consent():
 
 
 # ── Stripe — köpsidor ─────────────────────────────────────────────────────────
+@app.route("/om-lasningen")
+def om_lasningen():
+    return render_template("om_lasningen.html")
+
+
 @app.route("/kop")
 def kop():
     if not session.get("consent_given"):

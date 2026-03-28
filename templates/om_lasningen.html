@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hur fungerar det? — JJ Universe</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <style>
+    body { padding: 48px 16px 80px; display: flex; flex-direction: column; align-items: center; }
+
+    .page-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.8rem;
+      color: #fff;
+      letter-spacing: 0.15em;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .page-sub {
+      color: #9980bb;
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 1.05rem;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    /* Intro-sektion */
+    .intro-box {
+      background: linear-gradient(160deg, #1a0048, #0d0020);
+      border: 1px solid rgba(155,48,255,0.25);
+      border-radius: 16px;
+      padding: 36px 32px;
+      max-width: 700px;
+      width: 100%;
+      margin-bottom: 48px;
+    }
+    .intro-box h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.1rem;
+      color: #c8b4ff;
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+    }
+    .intro-box p {
+      font-family: 'Crimson Text', serif;
+      color: #ede0ff;
+      font-size: 1rem;
+      line-height: 1.75;
+      margin-bottom: 12px;
+    }
+    .intro-box p:last-child { margin-bottom: 0; }
+    .highlight { color: #c39bff; font-style: italic; }
+
+    /* Paket-sektioner */
+    .pkg-section {
+      max-width: 700px;
+      width: 100%;
+      margin-bottom: 56px;
+    }
+    .pkg-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .pkg-header h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.3rem;
+      color: #fff;
+      letter-spacing: 0.1em;
+    }
+    .pkg-header .price {
+      font-size: 1.1rem;
+      color: #9b30ff;
+      font-weight: bold;
+    }
+    .pkg-tagline {
+      font-family: 'Crimson Text', serif;
+      color: #c8b4ff;
+      font-size: 1rem;
+      font-style: italic;
+      margin-bottom: 20px;
+    }
+
+    .pkg-facts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .fact-chip {
+      background: rgba(155,48,255,0.12);
+      border: 1px solid rgba(155,48,255,0.3);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-family: 'Crimson Text', serif;
+      font-size: 0.9rem;
+      color: #c8b4ff;
+    }
+
+    .pkg-text {
+      font-family: 'Crimson Text', serif;
+      color: #ede0ff;
+      font-size: 1rem;
+      line-height: 1.75;
+      margin-bottom: 24px;
+    }
+
+    /* Bildgalleri */
+    .img-gallery {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .img-gallery img {
+      border-radius: 10px;
+      border: 1px solid rgba(155,48,255,0.25);
+      max-height: 220px;
+      max-width: 100%;
+      object-fit: cover;
+      box-shadow: 0 0 20px rgba(155,48,255,0.1);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .img-gallery img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 35px rgba(155,48,255,0.3);
+    }
+    .img-single img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(155,48,255,0.15);
+      margin: 0 0 56px;
+      max-width: 700px;
+      width: 100%;
+    }
+
+    /* CTA */
+    .cta-box {
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+    }
+    .cta-box p {
+      font-family: 'Crimson Text', serif;
+      color: #9980bb;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #5b00a8, #9b30ff);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 16px 40px;
+      font-family: 'Cinzel', serif;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 0 25px rgba(155,48,255,0.3);
+      transition: box-shadow 0.3s, transform 0.2s;
+    }
+    .cta-btn:hover {
+      box-shadow: 0 0 45px rgba(155,48,255,0.5);
+      transform: translateY(-2px);
+    }
+    .back {
+      color: #9980bb;
+      text-decoration: none;
+      font-size: 0.85rem;
+      display: block;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .back:hover { color: #fff; }
+
+    /* Lightbox */
+    #lightbox {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 12px;
+      border: 1px solid rgba(155,48,255,0.4);
+      box-shadow: 0 0 60px rgba(155,48,255,0.3);
+    }
+    #lightbox-close {
+      position: absolute;
+      top: 20px; right: 28px;
+      font-size: 2rem;
+      color: #fff;
+      cursor: pointer;
+      background: none;
+      border: none;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+<canvas id="stars-canvas"></canvas>
+
+<a href="/welcome" class="back">← Tillbaka</a>
+
+<h1 class="page-title">✦ Hur fungerar det? ✦</h1>
+<p class="page-sub">Allt du behöver veta innan du börjar din resa</p>
+
+<!-- INTRO -->
+<div class="intro-box">
+  <h2>Om korten &amp; tolkningen</h2>
+  <p>
+    Korten i JJ Universe är <span class="highlight">handgjorda</span> och hämtade ur tarotets
+    fulla 78-kortsdäck — både den <span class="highlight">stora arkanan</span> (de 22 stora kraftkorten
+    som berättar om livets djupare teman) och den <span class="highlight">lilla arkanan</span>
+    (de 56 korten som speglar vardagens händelser och känslor).
+  </p>
+  <p>
+    Tolkningen görs av AI, vilket gör att varje kort läses <span class="highlight">precist och i sitt
+    sammanhang</span> — inte ett generellt svar, utan en tolkning som väger ihop kortets betydelse
+    med just din fråga och de övriga korten i din läggning.
+  </p>
+  <p>
+    Varje läsning avslutas med ett <span class="highlight">konkret råd</span> — något att ta med sig,
+    tänka på eller agera utifrån. Det är inte bara spådom, det är vägledning.
+  </p>
+</div>
+
+<!-- EN FRÅGA -->
+<div class="pkg-section">
+  <div class="pkg-header">
+    <h2>En Fråga</h2>
+    <span class="price">60 kr</span>
+  </div>
+  <p class="pkg-tagline">För dig som har en sak på hjärtat</p>
+  <div class="pkg-facts">
+    <span class="fact-chip">1 huvudfråga</span>
+    <span class="fact-chip">3 kort</span>
+    <span class="fact-chip">3 följdfrågor med eget kort</span>
+    <span class="fact-chip">Totalt 4 frågor · upp till 6 kort</span>
+  </div>
+  <p class="pkg-text">
+    Du ställer en fråga och drar tre kort: <strong>Grunden</strong> (vad situationen bygger på),
+    <strong>Kärnan</strong> (vad som driver det nu) och <strong>Vägen framåt</strong> (vad som leder dig vidare).
+    AI:n tolkar korten ihop och ger dig en sammanhängande läsning.<br><br>
+    Efteråt har du tre följdfrågor — och till varje följdfråga drar du ett <strong>extra kort</strong>
+    som förstärker svaret. Vill du gräva djupare i något, be om ett förtydligande eller utforska
+    en känsla? Det är precis vad följdfrågorna är till för.
+  </p>
+  <div class="img-gallery">
+    <img src="/static/images/excempel_pic/cards_one.png" alt="Tre kort läggs ut" loading="lazy">
+    <img src="/static/images/excempel_pic/svar.png" alt="AI-tolkning av korten" loading="lazy">
+    <img src="/static/images/excempel_pic/next_one.png" alt="Följdfråga med extra kort" loading="lazy">
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- TRE FRÅGOR -->
+<div class="pkg-section">
+  <div class="pkg-header">
+    <h2>Tre Frågor</h2>
+    <span class="price">150 kr</span>
+  </div>
+  <p class="pkg-tagline">För dig som vill utforska flera områden på en gång</p>
+  <div class="pkg-facts">
+    <span class="fact-chip">3 huvudfrågor</span>
+    <span class="fact-chip">9 kort</span>
+    <span class="fact-chip">3 följdfrågor per fråga</span>
+    <span class="fact-chip">Totalt 12 frågor · upp till 18 kort</span>
+  </div>
+  <p class="pkg-text">
+    Du ställer tre separata frågor — kanske om kärlek, karriär och personlig utveckling.
+    För varje fråga dras tre kort med samma upplägg som i En Fråga: Grunden, Kärnan och Vägen framåt.
+    AI:n ger en individuell tolkning per fråga och avslutar med ett <strong>gemensamt råd</strong>
+    som binder ihop hela läsningen.<br><br>
+    Till varje fråga har du tre följdfrågor med extra kort — det ger dig upp till 9 följdfrågor totalt.
+    Det här paketet ger dig en rik och mångsidig bild av var du befinner dig just nu.
+  </p>
+  <div class="img-gallery">
+    <img src="/static/images/excempel_pic/tre_1.png" alt="Tre frågor ställs" loading="lazy">
+    <img src="/static/images/excempel_pic/tre_2.png" alt="Nio kort läggs ut" loading="lazy">
+    <img src="/static/images/excempel_pic/svar_three.png" alt="Tolkning av tre frågor" loading="lazy">
+    <img src="/static/images/excempel_pic/tre_4.png" alt="Följdfråga tre frågor" loading="lazy">
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ÅRSSTJÄRNAN -->
+<div class="pkg-section">
+  <div class="pkg-header">
+    <h2>Årsstjärnan</h2>
+    <span class="price">300 kr</span>
+  </div>
+  <p class="pkg-tagline">En helhetsbild av ditt år — månad för månad</p>
+  <div class="pkg-facts">
+    <span class="fact-chip">13 kort</span>
+    <span class="fact-chip">12 månader + årets tema</span>
+    <span class="fact-chip">3 följdfrågor med eget kort</span>
+    <span class="fact-chip">Täcker hela ditt år</span>
+  </div>
+  <p class="pkg-text">
+    Årsstjärnan är den stora läsningen. Tolv kort — ett för varje månad — läggs ut i en cirkel,
+    och i mitten placeras ett <strong>trettonde kort: årets tema</strong>. Det är hjärtat i din läsning,
+    den övergripande energin som präglar hela ditt år.<br><br>
+    AI:n ger en kortfattad och kärnfull tolkning för varje månad — vad du kan förvänta dig,
+    vad du behöver vara uppmärksam på och var din energi kommer att ligga. Sedan avslutas allt
+    med ett samlat <strong>årsråd</strong> utifrån helheten.<br><br>
+    Du har även tre följdfrågor med extra kort — perfekt om du vill djupdyka i en specifik
+    månad eller ett tema som fångade din uppmärksamhet.
+  </p>
+  <div class="img-gallery">
+    <img src="/static/images/excempel_pic/star.png" alt="Årsstjärnan läggning" loading="lazy">
+    <img src="/static/images/excempel_pic/star_hela.png" alt="Alla 13 kort" loading="lazy">
+    <img src="/static/images/excempel_pic/star_more.png" alt="Månadsvis tolkning" loading="lazy">
+    <img src="/static/images/excempel_pic/star_next.png" alt="Årsråd" loading="lazy">
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- CTA -->
+<div class="cta-box">
+  <p>Redo att börja? Välj det paket som känns rätt för dig just nu.</p>
+  <a href="/kop" class="cta-btn">Köp en läsning ✦</a>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <button id="lightbox-close">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script src="/static/js/app.js"></script>
+<script src="/static/js/ambient.js"></script>
+<script>
+  // Lightbox
+  document.querySelectorAll('.img-gallery img').forEach(img => {
+    img.addEventListener('click', () => {
+      document.getElementById('lightbox-img').src = img.src;
+      document.getElementById('lightbox').classList.add('open');
+    });
+  });
+  document.getElementById('lightbox').addEventListener('click', e => {
+    if (e.target.id === 'lightbox' || e.target.id === 'lightbox-close') {
+      document.getElementById('lightbox').classList.remove('open');
+    }
+  });
+</script>
+</body>
+</html>
