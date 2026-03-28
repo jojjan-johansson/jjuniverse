@@ -400,6 +400,18 @@ def save_consent():
 def om_lasningen():
     return render_template("om_lasningen.html")
 
+@app.route("/om-lasningen/en-fraga")
+def om_en_fraga():
+    return render_template("om_en_fraga.html")
+
+@app.route("/om-lasningen/tre-fragor")
+def om_tre_fragor():
+    return render_template("om_tre_fragor.html")
+
+@app.route("/om-lasningen/arsstjarnan")
+def om_arsstjarnan():
+    return render_template("om_arsstjarnan.html")
+
 
 @app.route("/kop")
 def kop():

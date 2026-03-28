@@ -136,21 +136,40 @@
   <h2>Översikt</h2>
   <div class="stat-grid">
     <div class="stat-card">
-      <div class="stat-label">Användare totalt</div>
-      <div class="stat-value">{{ total_users }}</div>
+      <div class="stat-label">Köp totalt</div>
+      <div class="stat-value">{{ total_purchases }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Köp idag</div>
+      <div class="stat-value">{{ today_purchases }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Läsningar totalt</div>
       <div class="stat-value">{{ total_readings }}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Besök idag</div>
+      <div class="stat-label">Besök idag (människor)</div>
       <div class="stat-value">{{ today_visits }}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Besök senaste 7 dagarna</div>
+      <div class="stat-label">Besök 7 dagar (människor)</div>
       <div class="stat-value">{{ week_visits }}</div>
     </div>
+  </div>
+
+  <div class="section">
+    <h3>Köp per paket</h3>
+    <table>
+      <tr><th>Paket</th><th>Antal köp</th></tr>
+      {% for p in purchases_by_package %}
+      <tr>
+        <td>{{ {'single':'En Fråga (60 kr)','triple':'Tre Frågor (150 kr)','year':'Årsstjärnan (300 kr)'}.get(p.package, p.package) }}</td>
+        <td>{{ p.cnt }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" style="color:#6650a0;">Inga köp ännu</td></tr>
+      {% endfor %}
+    </table>
   </div>
 
   <div class="section">
@@ -167,21 +186,6 @@
       {% endfor %}
     </table>
   </div>
-
-  <div class="section">
-    <h3>Senaste registrerade användare</h3>
-    <table>
-      <tr><th>Användarnamn</th><th>Registrerad</th></tr>
-      {% for u in recent_users %}
-      <tr>
-        <td>{{ u.username }}</td>
-        <td style="color:#9980bb;font-size:0.8rem;">{{ u.created }}</td>
-      </tr>
-      {% else %}
-      <tr><td colspan="2" style="color:#6650a0;">Inga användare ännu</td></tr>
-      {% endfor %}
-    </table>
-  </div>
   {% endif %}
 
 
@@ -190,7 +194,25 @@
   <h2>Statistik</h2>
 
   <div class="section">
-    <h3>Besök per dag (senaste 30 dagarna)</h3>
+    <h3>Köp per dag (senaste 30 dagarna)</h3>
+    <table>
+      <tr><th>Datum</th><th>Totalt</th><th>En Fråga</th><th>Tre Frågor</th><th>Årsstjärnan</th></tr>
+      {% for p in daily_purchases %}
+      <tr>
+        <td>{{ p.day }}</td>
+        <td style="color:#c8a8ff;font-weight:bold;">{{ p.cnt }}</td>
+        <td style="color:#9980bb;">{{ p.single_cnt }}</td>
+        <td style="color:#9980bb;">{{ p.triple_cnt }}</td>
+        <td style="color:#9980bb;">{{ p.year_cnt }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="color:#6650a0;">Inga köp ännu</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>Mänskliga besök per dag (senaste 30 dagarna)</h3>
     <table>
       <tr><th>Datum</th><th>Besök</th></tr>
       {% for v in daily_visits %}
@@ -220,7 +242,7 @@
   </div>
 
   <div class="section">
-    <h3>Mest besökta sidor</h3>
+    <h3>Mest besökta sidor (mänsklig trafik)</h3>
     <table>
       <tr><th>Sida</th><th>Besök</th></tr>
       {% for p in top_paths %}

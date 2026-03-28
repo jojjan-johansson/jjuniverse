@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>En Fråga — JJ Universe</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <style>
+    body { padding:48px 16px 80px; display:flex; flex-direction:column; align-items:center; }
+    .back { color:#9980bb; text-decoration:none; font-size:0.85rem; display:block; text-align:center; margin-bottom:32px; }
+    .back:hover { color:#fff; }
+    .page-title { font-family:'Cinzel',serif; font-size:1.6rem; color:#fff; letter-spacing:0.12em; text-align:center; margin-bottom:4px; }
+    .page-price { font-size:2rem; color:#fff; font-weight:bold; text-align:center; margin-bottom:4px; }
+    .page-price span { font-size:1rem; color:#9980bb; font-weight:normal; }
+    .page-sub { color:#9980bb; font-family:'Crimson Text',serif; font-style:italic; font-size:1rem; text-align:center; margin-bottom:40px; }
+
+    .facts { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:40px; }
+    .fact { background:rgba(155,48,255,0.12); border:1px solid rgba(155,48,255,0.3); border-radius:20px; padding:6px 16px; font-family:'Crimson Text',serif; font-size:0.95rem; color:#c8b4ff; }
+
+    .section { max-width:680px; width:100%; margin-bottom:48px; }
+    .section h2 { font-family:'Cinzel',serif; font-size:1rem; color:#c8b4ff; letter-spacing:0.1em; margin-bottom:16px; text-transform:uppercase; }
+    .section p { font-family:'Crimson Text',serif; color:#ede0ff; font-size:1rem; line-height:1.8; margin-bottom:12px; }
+    .section p:last-child { margin-bottom:0; }
+    em { color:#c39bff; }
+
+    .imgs { display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; }
+    .imgs img { border-radius:10px; border:1px solid rgba(155,48,255,0.25); max-height:240px; max-width:100%; object-fit:cover; box-shadow:0 0 20px rgba(155,48,255,0.1); cursor:pointer; transition:transform 0.2s, box-shadow 0.2s; }
+    .imgs img:hover { transform:scale(1.02); box-shadow:0 0 35px rgba(155,48,255,0.3); }
+
+    .cta { text-align:center; max-width:400px; width:100%; margin-top:16px; }
+    .cta-btn { display:inline-block; background:linear-gradient(135deg,#5b00a8,#9b30ff); color:#fff; border-radius:10px; padding:16px 40px; font-family:'Cinzel',serif; font-size:1rem; letter-spacing:0.1em; text-decoration:none; box-shadow:0 0 25px rgba(155,48,255,0.3); transition:box-shadow 0.3s, transform 0.2s; }
+    .cta-btn:hover { box-shadow:0 0 45px rgba(155,48,255,0.5); transform:translateY(-2px); }
+    .cta p { font-family:'Crimson Text',serif; color:#9980bb; font-size:0.9rem; margin-top:12px; font-style:italic; }
+
+    #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+    #lightbox.open { display:flex; }
+    #lightbox img { max-width:90vw; max-height:90vh; border-radius:12px; border:1px solid rgba(155,48,255,0.4); }
+    #lb-close { position:absolute; top:20px; right:28px; font-size:2rem; color:#fff; cursor:pointer; background:none; border:none; }
+  </style>
+</head>
+<body>
+<canvas id="stars-canvas"></canvas>
+
+<a href="/om-lasningen" class="back">← Tillbaka till alla paket</a>
+
+<h1 class="page-title">✦ En Fråga ✦</h1>
+<div class="page-price">60 <span>kr</span></div>
+<p class="page-sub">För dig som har en sak på hjärtat</p>
+
+<div class="facts">
+  <span class="fact">1 huvudfråga</span>
+  <span class="fact">3 kort</span>
+  <span class="fact">3 följdfrågor med eget kort</span>
+  <span class="fact">Totalt 4 frågor · upp till 6 kort</span>
+</div>
+
+<div class="section">
+  <h2>Så fungerar det</h2>
+  <p>Du börjar med att skriva din fråga — vad som helst du funderar på eller vill ha klarhet i. Sedan dras tre kort ur tarotets fulla 78-kortsdäck, handgjorda kort ur både <em>stora arkana</em> (livets stora teman) och <em>lilla arkana</em> (vardagens energier).</p>
+  <p>Korten placeras i tre positioner:</p>
+  <p><strong>Grunden</strong> — vad situationen bygger på<br>
+  <strong>Kärnan</strong> — vad som driver det just nu<br>
+  <strong>Vägen framåt</strong> — vad som leder dig vidare</p>
+  <p>AI:n tolkar korten <em>tillsammans</em>, med din fråga som utgångspunkt. Det är inte ett generellt svar på vad kortet "brukar" betyda — det är en tolkning som väger ihop kortets symbolik med din specifika situation. Läsningen avslutas alltid med ett <em>konkret råd</em> att ta med sig.</p>
+  <div class="imgs">
+    <img src="/static/images/excempel_pic/cards_one.png" alt="Tre kort läggs ut" loading="lazy">
+    <img src="/static/images/excempel_pic/first.png" alt="Frågan ställs" loading="lazy">
+    <img src="/static/images/excempel_pic/svar.png" alt="AI tolkar korten" loading="lazy">
+  </div>
+</div>
+
+<div class="section">
+  <h2>Följdfrågor med extra kort</h2>
+  <p>När läsningen är klar har du tre följdfrågor. Till varje följdfråga drar du ett <em>extra kort</em> som förstärker och fördjupar svaret — precis som om du drog ett kort för att bekräfta en känsla eller utforska en ny tanke.</p>
+  <p>Vill du förstå en position djupare? Fråga om ett specifikt kort? Utforska ett tema som dök upp? Det är precis vad följdfrågorna är till för.</p>
+  <div class="imgs">
+    <img src="/static/images/excempel_pic/next_one.png" alt="Följdfråga med extra kort" loading="lazy">
+    <img src="/static/images/excempel_pic/svar_ja.png" alt="Svar på följdfråga" loading="lazy">
+    <img src="/static/images/excempel_pic/next.png" alt="Nästa följdfråga" loading="lazy">
+  </div>
+</div>
+
+<div class="cta">
+  <a href="/kop/bekrafta?package=single" class="cta-btn">Köp En Fråga — 60 kr ✦</a>
+  <p>Säker betalning via Stripe · Inga kortuppgifter sparas</p>
+</div>
+
+<div id="lightbox"><button id="lb-close">✕</button><img id="lb-img" src="" alt=""></div>
+
+<script src="/static/js/app.js"></script>
+<script src="/static/js/ambient.js"></script>
+<script>
+document.querySelectorAll('.imgs img').forEach(img => {
+  img.addEventListener('click', () => {
+    document.getElementById('lb-img').src = img.src;
+    document.getElementById('lightbox').classList.add('open');
+  });
+});
+document.getElementById('lightbox').addEventListener('click', e => {
+  if (e.target.id === 'lightbox' || e.target.id === 'lb-close') {
+    document.getElementById('lightbox').classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
