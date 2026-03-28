@@ -20,7 +20,6 @@
 <section id="intro-section" class="section"{% if purchase_package %} hidden{% endif %}>
   <div class="top-bar">
     <span class="top-user">✦ {{ username }}</span>
-    <a href="/logout" class="top-logout">Logga ut</a>
   </div>
   <h1 class="logo">JJ Universe</h1>
   <p class="tagline">Kortens visdom möter din intuition</p>
@@ -123,9 +122,6 @@
       <button class="btn btn-ghost" id="card-followup-btn">✦ Följdfråga med kort ✦</button>
 <button class="btn" id="new-reading-btn"
         data-purchase="{{ 'true' if purchase_package else 'false' }}">✦ Ny läsning ✦</button>
-      {% if purchase_package %}
-      <button class="btn btn-ghost" id="end-session-btn">Logga ut</button>
-      {% endif %}
     </div>
 
 <!-- Mini-läggning för följdfråga med kort -->
