@@ -163,7 +163,7 @@
       <tr><th>Paket</th><th>Antal köp</th></tr>
       {% for p in purchases_by_package %}
       <tr>
-        <td>{{ {'single':'En Fråga (60 kr)','triple':'Tre Frågor (150 kr)','year':'Årsstjärnan (300 kr)'}.get(p.package, p.package) }}</td>
+        <td>{{ {'single':'4 Frågor (60 kr)','triple':'12 Frågor (150 kr)','year':'Årsstjärnan (300 kr)'}.get(p.package, p.package) }}</td>
         <td>{{ p.cnt }}</td>
       </tr>
       {% else %}
@@ -178,7 +178,7 @@
       <tr><th>Typ</th><th>Antal</th></tr>
       {% for r in readings_by_type %}
       <tr>
-        <td>{{ {'single':'En Fråga','triple':'Tre Frågor','year':'Årsstjärnan'}.get(r.spread_type, r.spread_type) }}</td>
+        <td>{{ {'single':'4 Frågor','triple':'12 Frågor','year':'Årsstjärnan'}.get(r.spread_type, r.spread_type) }}</td>
         <td>{{ r.cnt }}</td>
       </tr>
       {% else %}
@@ -196,7 +196,7 @@
   <div class="section">
     <h3>Köp per dag (senaste 30 dagarna)</h3>
     <table>
-      <tr><th>Datum</th><th>Totalt</th><th>En Fråga</th><th>Tre Frågor</th><th>Årsstjärnan</th></tr>
+      <tr><th>Datum</th><th>Totalt</th><th>4 Frågor</th><th>12 Frågor</th><th>Årsstjärnan</th></tr>
       {% for p in daily_purchases %}
       <tr>
         <td>{{ p.day }}</td>
