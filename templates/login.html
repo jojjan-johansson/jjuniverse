@@ -292,10 +292,22 @@ async function buildShareImage() {
   });
 }
 
-function shareFacebook() {
-  const url = encodeURIComponent('https://jjuniverse.se');
-  const text = encodeURIComponent(getShareText());
-  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400');
+async function shareFacebook() {
+  const canvas = await buildShareImage();
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], 'mitt-tarotkort.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], text: getShareText() });
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'mitt-tarotkort.png';
+      a.click();
+      setTimeout(() => {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://jjuniverse.se')}`, '_blank', 'width=600,height=400');
+      }, 500);
+    }
+  }, 'image/png');
 }
 
 async function shareNative() {
