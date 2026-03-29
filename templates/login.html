@@ -72,11 +72,32 @@
 
       <div class="free-card-reading" id="free-card-reading" hidden>
         <p class="free-card-text" id="free-card-text"></p>
+
+        <!-- Dela-knappar -->
+        <div class="share-section" id="share-section">
+          <p class="share-label">✦ Dela ditt kort</p>
+          <div class="share-btns">
+            <button class="share-btn share-fb" onclick="shareFacebook()">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+              Facebook
+            </button>
+            <button class="share-btn share-native" onclick="shareNative()" id="share-native-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              Instagram / TikTok
+            </button>
+            <button class="share-btn share-copy" onclick="copyShareText()" id="copy-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Kopiera text
+            </button>
+          </div>
+        </div>
+
         <p class="free-card-cta">
           Vill du ha en fullständig läsning?
           <a href="/kop">Köp en läsning här</a>
         </p>
       </div>
+      <canvas id="share-canvas" style="display:none"></canvas>
     </div>
   </div>
 
@@ -117,10 +138,29 @@
 
 </div>
 
+<style>
+.share-section { margin: 20px 0 8px; }
+.share-label { font-family:'Crimson Text',serif; color:#9980bb; font-size:0.85rem; text-align:center; margin-bottom:12px; letter-spacing:0.05em; }
+.share-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.share-btn {
+  display:flex; align-items:center; gap:7px;
+  border:none; border-radius:8px; padding:9px 16px;
+  font-family:'Cinzel',serif; font-size:0.75rem; letter-spacing:0.06em;
+  cursor:pointer; transition:all 0.2s;
+}
+.share-fb { background:#1877f2; color:#fff; }
+.share-fb:hover { background:#1565d8; }
+.share-native { background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045); color:#fff; }
+.share-native:hover { opacity:0.85; }
+.share-copy { background:rgba(155,48,255,0.15); color:#c8b4ff; border:1px solid rgba(155,48,255,0.3); }
+.share-copy:hover { background:rgba(155,48,255,0.3); color:#fff; }
+</style>
+
 <script src="/static/js/app.js"></script>
 <script src="/static/js/ambient.js"></script>
 <script>
 let freeCardDrawn = false;
+let currentCard = null;
 
 async function drawFreeCard() {
   if (freeCardDrawn) return;
@@ -151,6 +191,7 @@ async function drawFreeCard() {
         return;
       } else if (d.card) {
         card = d.card;
+        currentCard = d.card;
         const img = document.getElementById('free-card-img');
         img.src = `/static/images/cards/${card.image}`;
         img.alt = card.name_sv;
@@ -165,6 +206,121 @@ async function drawFreeCard() {
       }
     } catch {}
   };
+}
+
+function getShareText() {
+  const name = currentCard ? currentCard.name_sv : 'Tarotkort';
+  const rev  = currentCard && currentCard.reversed ? ' (omvänd)' : '';
+  return `Mitt dagliga tarotkort: ${name}${rev} ✦ Få din egen läsning på jjuniverse.se`;
+}
+
+async function buildShareImage() {
+  return new Promise((resolve) => {
+    const img = document.getElementById('free-card-img');
+    const canvas = document.getElementById('share-canvas');
+    const W = 800, H = 1000;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Bakgrund
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#1a0048');
+    bg.addColorStop(1, '#0d0020');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Stjärnor
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    for (let i = 0; i < 120; i++) {
+      const x = Math.random() * W, y = Math.random() * H;
+      const r = Math.random() * 1.5;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Titel
+    ctx.font = '500 32px Cinzel, serif';
+    ctx.fillStyle = '#9b30ff';
+    ctx.textAlign = 'center';
+    ctx.fillText('✦ JJ Universe ✦', W/2, 70);
+
+    // Undertext
+    ctx.font = 'italic 22px "Crimson Text", serif';
+    ctx.fillStyle = '#9980bb';
+    ctx.fillText('Mitt dagliga tarotkort', W/2, 110);
+
+    // Kortbild
+    const cardImg = new Image();
+    cardImg.crossOrigin = 'anonymous';
+    cardImg.onload = () => {
+      const cW = 320, cH = 520;
+      const cX = (W - cW) / 2, cY = 150;
+
+      // Glöd runt kortet
+      ctx.shadowColor = 'rgba(155,48,255,0.8)';
+      ctx.shadowBlur = 40;
+      ctx.fillStyle = 'rgba(155,48,255,0.1)';
+      ctx.roundRect(cX-8, cY-8, cW+16, cH+16, 16);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      if (currentCard && currentCard.reversed) {
+        ctx.save();
+        ctx.translate(W/2, cY + cH/2);
+        ctx.rotate(Math.PI);
+        ctx.drawImage(cardImg, -cW/2, -cH/2, cW, cH);
+        ctx.restore();
+      } else {
+        ctx.drawImage(cardImg, cX, cY, cW, cH);
+      }
+
+      // Kortnamn
+      const name = currentCard ? currentCard.name_sv + (currentCard.reversed ? ' ↓' : '') : '';
+      ctx.font = '600 28px Cinzel, serif';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(name, W/2, cY + cH + 50);
+
+      // Webbadress
+      ctx.font = 'italic 20px "Crimson Text", serif';
+      ctx.fillStyle = '#6650a0';
+      ctx.fillText('jjuniverse.se', W/2, H - 30);
+
+      resolve(canvas);
+    };
+    cardImg.onerror = () => resolve(canvas);
+    cardImg.src = img.src;
+  });
+}
+
+function shareFacebook() {
+  const url = encodeURIComponent('https://jjuniverse.se');
+  const text = encodeURIComponent(getShareText());
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400');
+}
+
+async function shareNative() {
+  const canvas = await buildShareImage();
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], 'mitt-tarotkort.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], text: getShareText() });
+    } else {
+      // Fallback: ladda ner bilden
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'mitt-tarotkort.png';
+      a.click();
+      alert('Bild nedladdad! Ladda upp den i Instagram eller TikTok.');
+    }
+  }, 'image/png');
+}
+
+async function copyShareText() {
+  await navigator.clipboard.writeText(getShareText());
+  const btn = document.getElementById('copy-btn');
+  const orig = btn.innerHTML;
+  btn.textContent = '✓ Kopierad!';
+  setTimeout(() => { btn.innerHTML = orig; }, 2000);
 }
 </script>
 
