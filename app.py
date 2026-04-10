@@ -50,9 +50,9 @@ BOT_UA_FILTER = """
 _last_alert_sent: dict = {}
 
 PACKAGES = {
-    "single": {"name": "4 Frågor",    "desc": "1 huvudfråga · 3 kort · + 3 följdfrågor med eget kort = totalt 4 frågor", "price": 6000},
-    "triple": {"name": "12 Frågor",  "desc": "3 huvudfrågor · 9 kort · + 3 följdfrågor per fråga = totalt 12 frågor", "price": 15000},
-    "year":   {"name": "Årsstjärnan", "desc": "13 kort · ett för varje månad + årets tema · + 3 följdfrågor med eget kort", "price": 30000},
+    "single": {"name": "4 Frågor",    "desc": "1 huvudfråga · 3 kort · + 3 följdfrågor med eget kort = totalt 4 frågor", "price": 3000},
+    "triple": {"name": "12 Frågor",  "desc": "3 huvudfrågor · 9 kort · + 3 följdfrågor per fråga = totalt 12 frågor", "price": 6000},
+    "year":   {"name": "Årsstjärnan", "desc": "13 kort · ett för varje månad + årets tema · + 3 följdfrågor med eget kort", "price": 10000},
 }
 
 # Initiera databasen vid start
