@@ -435,6 +435,11 @@ venv/bin/python3 app.py
 /etc/systemd/system/jjuniverse.service
 ```
 
+### Ansluta till servern
+```bash
+ssh johanna@213.188.153.93
+```
+
 ### Driftsätta en uppdatering
 ```bash
 cd ~/apps/jjuniverse
