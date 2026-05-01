@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JJ Universe ✦ Veckans Spådomar</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/veckan.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;1,400&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+
+<div class="veckan-page">
+  <a href="/login" class="veckan-back">← Tillbaka</a>
+
+  <h1 class="logo">JJ Universe</h1>
+  <h2 class="veckan-title">Veckans Spådomar</h2>
+  <p class="veckan-week">{{ week }}</p>
+
+  <!-- MÅNFAS -->
+  <div class="veckan-panel moon-panel">
+    <div class="moon-display">
+      <div class="moon-svg-wrap">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="moon-svg">
+          <defs>
+            <mask id="moonMask">
+              <rect width="100" height="100" fill="white"/>
+              <circle cx="{{ moon.mask_cx }}" cy="50" r="34" fill="black"/>
+            </mask>
+            <filter id="moonGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <circle cx="50" cy="50" r="46" fill="rgba(155,48,255,0.06)"/>
+          <circle cx="50" cy="50" r="40" fill="rgba(195,155,255,0.04)"/>
+          <circle cx="50" cy="50" r="34" fill="rgba(235,220,255,0.90)" mask="url(#moonMask)" filter="url(#moonGlow)"/>
+          <circle cx="74" cy="20" r="1.4" fill="rgba(255,255,255,0.65)"/>
+          <circle cx="82" cy="42" r="0.9" fill="rgba(255,255,255,0.45)"/>
+          <circle cx="70" cy="74" r="1.1" fill="rgba(255,255,255,0.55)"/>
+          <circle cx="18" cy="28" r="0.9" fill="rgba(255,255,255,0.35)"/>
+          <circle cx="14" cy="62" r="1.3" fill="rgba(255,255,255,0.3)"/>
+          <circle cx="85" cy="65" r="0.7" fill="rgba(255,255,255,0.4)"/>
+        </svg>
+        <p class="moon-illumination">{{ moon.illumination }}% upplyst</p>
+      </div>
+      <div class="moon-info">
+        <h3 class="panel-title">{{ moon.name }}</h3>
+        <p class="panel-text" id="moon-desc-text">{{ moon.desc }}</p>
+      </div>
+    </div>
+
+    <div class="moon-extra">
+      <div class="moon-extra-block">
+        <p class="budskap-label">✦ Månens energi ✦</p>
+        <p class="panel-text">{{ moon.energy }}</p>
+      </div>
+      <div class="moon-extra-block">
+        <p class="budskap-label">✦ Urtidens visdom ✦</p>
+        <p class="panel-text">{{ moon.wisdom }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAROT 2x2 GRID -->
+  <div class="tarot-grid">
+
+    <div class="veckan-panel tarot-panel" id="panel-karlek">
+      <h3 class="panel-title">Veckans Kärlek</h3>
+      <div class="weekly-card-area">
+        <div class="weekly-card-wrap">
+          <div class="weekly-card" id="card-karlek">
+            <div class="weekly-card-inner">
+              <div class="weekly-card-back"><div class="weekly-card-back-inner"><span>✦</span></div></div>
+              <div class="weekly-card-front"><img id="img-karlek" src="" alt=""></div>
+            </div>
+          </div>
+          <p class="weekly-card-name" id="name-karlek"></p>
+        </div>
+        <button class="btn weekly-draw-btn" id="btn-karlek" onclick="drawWeeklyCard('karlek')">
+          ✦ Dra ditt kort
+        </button>
+        <div class="weekly-reading" id="reading-karlek" hidden>
+          <p class="budskap-label">✦ Veckans budskap ✦</p>
+          <p class="panel-text" id="text-karlek"></p>
+          <div class="weekly-share-btns" id="share-karlek"></div>
+          <a href="/kop" class="upsell-link">Djupare kärleksläsning →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="veckan-panel tarot-panel" id="panel-ekonomi">
+      <h3 class="panel-title">Veckans Ekonomi</h3>
+      <div class="weekly-card-area">
+        <div class="weekly-card-wrap">
+          <div class="weekly-card" id="card-ekonomi">
+            <div class="weekly-card-inner">
+              <div class="weekly-card-back"><div class="weekly-card-back-inner"><span>✦</span></div></div>
+              <div class="weekly-card-front"><img id="img-ekonomi" src="" alt=""></div>
+            </div>
+          </div>
+          <p class="weekly-card-name" id="name-ekonomi"></p>
+        </div>
+        <button class="btn weekly-draw-btn" id="btn-ekonomi" onclick="drawWeeklyCard('ekonomi')">
+          ✦ Dra ditt kort
+        </button>
+        <div class="weekly-reading" id="reading-ekonomi" hidden>
+          <p class="budskap-label">✦ Veckans budskap ✦</p>
+          <p class="panel-text" id="text-ekonomi"></p>
+          <div class="weekly-share-btns" id="share-ekonomi"></div>
+          <a href="/kop" class="upsell-link">Djupare ekonomiläsning →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="veckan-panel tarot-panel" id="panel-energi">
+      <h3 class="panel-title">Veckans Energi</h3>
+      <div class="weekly-card-area">
+        <div class="weekly-card-wrap">
+          <div class="weekly-card" id="card-energi">
+            <div class="weekly-card-inner">
+              <div class="weekly-card-back"><div class="weekly-card-back-inner"><span>✦</span></div></div>
+              <div class="weekly-card-front"><img id="img-energi" src="" alt=""></div>
+            </div>
+          </div>
+          <p class="weekly-card-name" id="name-energi"></p>
+        </div>
+        <button class="btn weekly-draw-btn" id="btn-energi" onclick="drawWeeklyCard('energi')">
+          ✦ Dra ditt kort
+        </button>
+        <div class="weekly-reading" id="reading-energi" hidden>
+          <p class="budskap-label">✦ Veckans budskap ✦</p>
+          <p class="panel-text" id="text-energi"></p>
+          <div class="weekly-share-btns" id="share-energi"></div>
+          <a href="/kop" class="upsell-link">Djupare läsning →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="veckan-panel tarot-panel" id="panel-jobb">
+      <h3 class="panel-title">Veckans Jobb</h3>
+      <div class="weekly-card-area">
+        <div class="weekly-card-wrap">
+          <div class="weekly-card" id="card-jobb">
+            <div class="weekly-card-inner">
+              <div class="weekly-card-back"><div class="weekly-card-back-inner"><span>✦</span></div></div>
+              <div class="weekly-card-front"><img id="img-jobb" src="" alt=""></div>
+            </div>
+          </div>
+          <p class="weekly-card-name" id="name-jobb"></p>
+        </div>
+        <button class="btn weekly-draw-btn" id="btn-jobb" onclick="drawWeeklyCard('jobb')">
+          ✦ Dra ditt kort
+        </button>
+        <div class="weekly-reading" id="reading-jobb" hidden>
+          <p class="budskap-label">✦ Veckans råd ✦</p>
+          <p class="panel-text" id="text-jobb"></p>
+          <div class="weekly-share-btns" id="share-jobb"></div>
+          <a href="/kop" class="upsell-link">Karriärläsning →</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- KINESISKT HOROSKOP -->
+  <div class="veckan-panel extra-panel" id="panel-chinese">
+    <h3 class="panel-title">Kinesiskt Horoskop</h3>
+    <div id="chinese-input" class="date-input-wrap">
+      <p class="date-input-desc">Ange ditt födelseår för att se veckans horoskop</p>
+      <div class="date-input-row">
+        <input type="number" id="chinese-year" class="date-input" placeholder="t.ex. 1990" min="1900" max="2025">
+        <button class="btn" onclick="fetchChinese()">Se mitt horoskop →</button>
+      </div>
+    </div>
+    <div id="chinese-result" hidden>
+      <p class="animal-label" id="chinese-animal"></p>
+      <p class="budskap-label">✦ Veckans budskap ✦</p>
+      <p class="panel-text" id="chinese-text"></p>
+      <button class="qa-btn" data-tema="chinese" onclick="openQA('chinese', this)">
+        ✦ Ställ 3 frågor om ditt horoskop — 20 kr
+      </button>
+      <div class="qa-panel" id="qa-chinese" hidden></div>
+    </div>
+  </div>
+
+  <!-- NUMEROLOGI -->
+  <div class="veckan-panel extra-panel" id="panel-numerology">
+    <h3 class="panel-title">Numerologi</h3>
+    <div id="numerology-input" class="date-input-wrap">
+      <p class="date-input-desc">Ange ditt fullständiga födelsedatum</p>
+      <div class="date-input-row">
+        <input type="number" id="num-day"   class="date-input date-input-sm" placeholder="Dag"  min="1"  max="31">
+        <input type="number" id="num-month" class="date-input date-input-sm" placeholder="Mån"  min="1"  max="12">
+        <input type="number" id="num-year"  class="date-input"               placeholder="År" min="1900" max="2025" style="width:90px;">
+        <button class="btn" onclick="fetchNumerology()">Beräkna →</button>
+      </div>
+    </div>
+    <div id="numerology-result" hidden>
+      <p class="life-path-label">Livsvägsnummer <span id="life-path-number"></span></p>
+      <p class="budskap-label">✦ Veckans budskap ✦</p>
+      <p class="panel-text" id="numerology-text"></p>
+      <button class="qa-btn" data-tema="numerology" onclick="openQA('numerology', this)">
+        ✦ Ställ 3 frågor om din numerologi — 20 kr
+      </button>
+      <div class="qa-panel" id="qa-numerology" hidden></div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <a href="/terms">Användarvillkor</a>
+    <span>·</span>
+    <a href="/privacy">Integritetspolicy</a>
+    <span>·</span>
+    <a href="/payment-terms">Betalningsvillkor</a>
+    <span>·</span>
+    <a href="mailto:jjuniverse.support@gmail.com">Support</a>
+  </footer>
+</div>
+
+<div class="cookie-banner" id="cookie-banner">
+  <p>Vi använder nödvändiga cookies för säkerhet. Inga spårningscookies.
+    <a href="/privacy">Integritetspolicy</a></p>
+  <button onclick="acceptCookies()">Okej</button>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script src="/static/js/ambient.js"></script>
+<script>
+const TEMA_LABELS = {
+  karlek: 'kärlek', ekonomi: 'ekonomi', energi: 'energi', jobb: 'jobb'
+};
+
+function buildShareBtns(tema, cardName, cardReversed) {
+  const shareText = `Veckans ${TEMA_LABELS[tema] || tema}kort: ${cardName}${cardReversed ? ' ↓' : ''} ✦ jjuniverse.se`;
+  return `
+    <button class="share-btn share-native" onclick="shareWeekly('${tema}','${cardName.replace(/'/g,"\\'")}',${cardReversed})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Dela
+    </button>
+    <button class="share-btn share-copy" onclick="copyWeekly(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      Kopiera
+    </button>
+  `;
+}
+
+const drawnCards = {};
+
+function drawWeeklyCard(tema) {
+  const btn = document.getElementById('btn-' + tema);
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '✦ Väntar på stjärnorna…';
+
+  const es = new EventSource('/api/weekly-card/' + tema);
+  let fullText = '';
+  let currentCard = null;
+
+  es.onmessage = (e) => {
+    if (e.data === '[DONE]') {
+      es.close();
+      drawnCards[tema] = currentCard;
+      document.getElementById('reading-' + tema).hidden = false;
+      btn.style.display = 'none';
+      if (currentCard) {
+        document.getElementById('share-' + tema).innerHTML =
+          buildShareBtns(tema, currentCard.name_sv, currentCard.reversed);
+      }
+      return;
+    }
+    try {
+      const d = JSON.parse(e.data);
+      if (d.card) {
+        currentCard = d.card;
+        const img = document.getElementById('img-' + tema);
+        img.src = '/static/images/cards/' + d.card.image;
+        img.alt = d.card.name_sv;
+        const cardEl = document.getElementById('card-' + tema);
+        if (d.card.reversed) cardEl.classList.add('reversed');
+        setTimeout(() => cardEl.classList.add('flipped'), 100);
+        document.getElementById('name-' + tema).textContent =
+          d.card.name_sv + (d.card.reversed ? ' ↓' : '');
+      } else if (d.text) {
+        fullText += d.text;
+        document.getElementById('text-' + tema).textContent = fullText;
+      }
+    } catch {}
+  };
+  es.onerror = () => {
+    es.close();
+    btn.disabled = false;
+    btn.textContent = '✦ Försök igen';
+  };
+}
+
+async function shareWeekly(tema, cardName, reversed) {
+  const text = `Veckans ${TEMA_LABELS[tema] || tema}kort: ${cardName}${reversed ? ' ↓' : ''} ✦ Få din läsning på jjuniverse.se`;
+  if (navigator.share) {
+    try { await navigator.share({ text }); } catch {}
+  } else {
+    await navigator.clipboard.writeText(text);
+    alert('Text kopierad!');
+  }
+}
+
+async function copyWeekly(btn) {
+  const panel = btn.closest('.weekly-reading');
+  const text = panel?.querySelector('.panel-text')?.textContent || '';
+  await navigator.clipboard.writeText(text + ' ✦ jjuniverse.se');
+  const orig = btn.innerHTML;
+  btn.textContent = '✓ Kopierad!';
+  setTimeout(() => { btn.innerHTML = orig; }, 2000);
+}
+
+function fetchChinese() {
+  const year = parseInt(document.getElementById('chinese-year').value);
+  if (!year || year < 1900 || year > 2025) { alert('Ange ett giltigt födelseår (1900–2025)'); return; }
+  localStorage.setItem('jj_birth_year', year);
+
+  document.getElementById('chinese-result').hidden = false;
+  document.getElementById('chinese-input').hidden = true;
+  const textEl = document.getElementById('chinese-text');
+  textEl.textContent = 'Hämtar ditt horoskop…';
+
+  const es = new EventSource('/api/chinese-horoscope?year=' + year);
+  let fullText = '';
+
+  es.onmessage = (e) => {
+    if (e.data === '[DONE]') { es.close(); return; }
+    try {
+      const d = JSON.parse(e.data);
+      if (d.animal) document.getElementById('chinese-animal').textContent = d.animal;
+      if (d.text) { fullText += d.text; textEl.textContent = fullText; }
+    } catch {}
+  };
+  es.onerror = () => {
+    es.close();
+    textEl.textContent = 'Något gick fel. Ladda om sidan och försök igen.';
+  };
+}
+
+function fetchNumerology() {
+  const day   = parseInt(document.getElementById('num-day').value);
+  const month = parseInt(document.getElementById('num-month').value);
+  const year  = parseInt(document.getElementById('num-year').value);
+  if (!day || !month || !year || day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2025) {
+    alert('Ange ett giltigt datum'); return;
+  }
+  localStorage.setItem('jj_birth_date', JSON.stringify({day, month, year}));
+
+  document.getElementById('numerology-result').hidden = false;
+  document.getElementById('numerology-input').hidden = true;
+  const textEl = document.getElementById('numerology-text');
+  textEl.textContent = 'Beräknar ditt livsvägsnummer…';
+
+  const url = `/api/numerology?day=${day}&month=${month}&year=${year}`;
+  const es = new EventSource(url);
+  let fullText = '';
+
+  es.onmessage = (e) => {
+    if (e.data === '[DONE]') { es.close(); return; }
+    try {
+      const d = JSON.parse(e.data);
+      if (d.life_path !== undefined) {
+        document.getElementById('life-path-number').textContent = d.life_path;
+      }
+      if (d.text) { fullText += d.text; textEl.textContent = fullText; }
+      if (d.error) {
+        es.close();
+        textEl.textContent = 'Något gick fel. Försök igen.';
+      }
+    } catch {}
+  };
+  es.onerror = () => {
+    es.close();
+    textEl.textContent = 'Något gick fel. Ladda om sidan och försök igen.';
+  };
+}
+
+function openQA(tema, btn) {
+  const panelEl = document.getElementById('qa-' + tema);
+  const stored = localStorage.getItem('jj_qa_token_' + tema);
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    if (parsed.remaining > 0) {
+      panelEl.hidden = false;
+      renderQAPanel(tema, parsed.token, parsed.remaining, panelEl);
+      btn.style.display = 'none';
+      return;
+    }
+  }
+  let context = '';
+  if (tema === 'moon')       context = document.getElementById('moon-desc-text')?.textContent || '';
+  if (tema === 'chinese')    context = document.getElementById('chinese-text')?.textContent || '';
+  if (tema === 'numerology') context = document.getElementById('numerology-text')?.textContent || '';
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Öppnar betalning…';
+  fetch('/api/weekly-qa/checkout', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ tema, context })
+  })
+  .then(r => r.json())
+  .then(d => { if (d.url) window.location.href = d.url; })
+  .catch(() => { btn.disabled = false; btn.textContent = '✦ Ställ 3 frågor — 20 kr'; });
+}
+
+function renderQAPanel(tema, token, remaining, panelEl) {
+  panelEl.innerHTML = `
+    <div class="qa-chat" id="qa-chat-${tema}"></div>
+    <p class="qa-remaining">Du har <span id="qa-remaining-${tema}">${remaining}</span> frågor kvar</p>
+    <div class="qa-input-row">
+      <textarea class="qa-input" id="qa-input-${tema}" placeholder="Skriv din fråga…" rows="2"></textarea>
+      <button class="btn qa-send-btn" onclick="sendQA('${tema}','${token}')">Fråga →</button>
+    </div>
+  `;
+}
+
+function sendQA(tema, token) {
+  const inputEl = document.getElementById('qa-input-' + tema);
+  const question = inputEl.value.trim();
+  if (!question) return;
+
+  const chatEl = document.getElementById('qa-chat-' + tema);
+  chatEl.innerHTML += `<div class="qa-msg qa-user">${question}</div>`;
+  inputEl.value = '';
+
+  const answerEl = document.createElement('div');
+  answerEl.className = 'qa-msg qa-answer';
+  chatEl.appendChild(answerEl);
+
+  const stored = JSON.parse(localStorage.getItem('jj_qa_token_' + tema) || '{}');
+  const history = stored.history || [];
+  let context = '';
+  if (tema === 'moon')       context = document.getElementById('moon-desc-text')?.textContent || '';
+  if (tema === 'chinese')    context = document.getElementById('chinese-text')?.textContent || '';
+  if (tema === 'numerology') context = document.getElementById('numerology-text')?.textContent || '';
+
+  let answerText = '';
+  fetch('/api/weekly-qa/ask', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ token, question, history, context })
+  }).then(async r => {
+    const reader = r.body?.getReader();
+    if (!reader) return;
+    const dec = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of dec.decode(value).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') {
+          const newRemaining = (stored.remaining || 3) - 1;
+          stored.remaining = newRemaining;
+          stored.history = [...history,
+            { role: 'user', content: question },
+            { role: 'assistant', content: answerText }
+          ];
+          localStorage.setItem('jj_qa_token_' + tema, JSON.stringify(stored));
+          const remEl = document.getElementById('qa-remaining-' + tema);
+          if (remEl) remEl.textContent = newRemaining;
+          if (newRemaining <= 0) {
+            document.getElementById('qa-' + tema).querySelector('.qa-input-row').innerHTML =
+              '<p style="color:#9980bb;text-align:center;font-style:italic;font-family:\'Crimson Text\',serif;">Du har ställt alla dina frågor.</p>';
+          }
+          break;
+        }
+        try {
+          const d = JSON.parse(data);
+          if (d.text) { answerText += d.text; answerEl.textContent = answerText; }
+        } catch {}
+      }
+    }
+  });
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('qa_betald') === '1') {
+  const sessionId = urlParams.get('session_id');
+  const tema = urlParams.get('tema');
+  if (sessionId && tema) {
+    fetch('/api/weekly-qa/activate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ session_id: sessionId })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.token) {
+        localStorage.setItem('jj_qa_token_' + tema, JSON.stringify({
+          token: d.token, remaining: 3, history: []
+        }));
+        window.history.replaceState({}, '', '/veckan');
+        const btn = document.querySelector(`[data-tema="${tema}"]`);
+        if (btn) btn.click();
+      }
+    });
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const savedYear = localStorage.getItem('jj_birth_year');
+  if (savedYear) document.getElementById('chinese-year').value = savedYear;
+
+  const savedDate = localStorage.getItem('jj_birth_date');
+  if (savedDate) {
+    const { day, month, year } = JSON.parse(savedDate);
+    document.getElementById('num-day').value = day;
+    document.getElementById('num-month').value = month;
+    document.getElementById('num-year').value = year;
+  }
+});
+
+function acceptCookies() {
+  localStorage.setItem('cookies_accepted', '1');
+  document.getElementById('cookie-banner')?.classList.add('hidden');
+}
+if (localStorage.getItem('cookies_accepted')) {
+  document.getElementById('cookie-banner')?.classList.add('hidden');
+}
+</script>
+</body>
+</html>

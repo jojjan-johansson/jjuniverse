@@ -12,7 +12,11 @@ import resend
 import stripe
 from cards import TAROT_CARDS
 from database import (init_db, get_db, can_draw_free_card, record_free_card_draw,
-                      log_visit, log_security_event, log_reading, log_consent)
+                      log_visit, log_security_event, log_reading, log_consent,
+                      get_cached_weekly_card, save_weekly_card,
+                      get_cached_weekly_extra, save_weekly_extra,
+                      create_weekly_qa_session, activate_weekly_qa_session,
+                      get_weekly_qa_session, use_weekly_qa_question)
 
 load_dotenv()
 
@@ -887,5 +891,377 @@ def admin_cleanup():
     return redirect(url_for("admin_security"))
 
 
+# ── Veckans spådomar ─────────────────────────────────────────────────────────
+
+def current_week() -> str:
+    iso = datetime.utcnow().isocalendar()
+    return f"{iso[0]}-W{iso[1]:02d}"
+
+MOON_PHASES = [
+    (0.033, "Nymåne", "🌑",
+     "En ny cykel tar sin början. Det är dags att plantera intentioner och välkomna det som vill komma in i ditt liv.",
+     "Nymånens himmel är mörk, men kraften under ytan är enorm — som ett frö som bäddas ner i svart jord. Allt som strävar uppåt mot ljuset börjar här, i det osynliga.",
+     "I tusentals år sådde bönder vid nymånen, för de visste att denna kraft bär med sig allt som vill växa. Skriv ned dina önskningar, tänd ett ljus och låt universum ta emot dem."),
+
+    (0.25, "Tilltagande skärmåne", "🌒",
+     "Månens ljus ökar. Energin rör sig framåt — dina tankar och drömmar börjar ta form i det yttre.",
+     "En liten silverskära syns nu på kvällshimlen. Det är universums tecken på att rörelse har börjat — precis som det första gröna skottet som bryter upp ur jord.",
+     "Gamla sjömän navigerade efter denna skära. Låt den visa dig riktningen. Det är nu tro och handling förenas."),
+
+    (0.283, "Halvmåne", "🌓",
+     "Du befinner dig vid ett korsvägskors. Halvmånen kallar dig att granska dina intentioner och justera kursen.",
+     "Hälften av månens ansikte är upplyst — och hälften i skugga. Spänningen mellan det kända och det okända är som störst just nu.",
+     "Hinder som uppstår nu är inte tecken att ge upp. De är universums sätt att testa hur starkt du vill ha det du strävar mot."),
+
+    (0.5, "Tilltagande halvmåne", "🌔",
+     "Månens ljus svämmar nästan över. Energin är magnetisk — möjligheter och insikter drar sig mot dig.",
+     "Månen sväller av ljus och kraft. Du befinner dig i cykelns mäktigaste tillväxtfas — allt som såddes vid nymånen är nu på väg att blomma ut.",
+     "Tålamodet belönas nu. Det sista steget innan fullmånen är alltid det som kräver mest mod. Håll kursen."),
+
+    (0.533, "Fullmåne", "🌕",
+     "Fullmånens kraft är som starkast. Det som såddes i mörkret bär nu frukt — en tid för insikt, känsla och uppenbarelse.",
+     "Hela månens ansikte strålar mot dig. Havet dras mot land, saven stiger i träden, och dina känslor är skarpare och djupare än vanligt. Det som är dolt kan inte längre gömma sig.",
+     "Fullmånen avslöjar sanningar. Vad du skjutit upp, vad du länge vetat och vad du drömt om — allt visar sig nu i fullmånens klara, obönhörliga sken. Lyssna på vad den berättar."),
+
+    (0.75, "Avtagande halvmåne", "🌖",
+     "Fullmånens ljus börjar avta. Det är nu visdomens tid — dela, reflektera och tacka.",
+     "Ljuset minskar, men insikternas tid är här. Det du lärt dig under månens tillväxtfas sjunker nu djupare in och blir en del av dig.",
+     "Gamla kulturer firade tacksamhetsfester vid avtagande måne. Det som ges bort med ett öppet hjärta återvänder alltid — i ny form, med ny kraft."),
+
+    (0.783, "Halvmåne", "🌗",
+     "Halvmånen leder dig inåt. Det är tid att frigöra det som tjänat ut sitt syfte.",
+     "En djup frid sänker sig. Kropp och sinne söker inre stillhet och rening. Det som inte längre tjänar dig behöver nu din tillåtelse att gå.",
+     "Det är tid att förlåta — andra och dig själv. Vad du bär med dig som är tungt: nu är stunden att lägga det ner vid månens fötter och gå vidare lättare."),
+
+    (1.0, "Avtagande skärmåne", "🌘",
+     "Månens cykel nalkas sitt slut. En helig paus inför vad som väntar — tid för djup vila och inre stillhet.",
+     "Månen vilar nästan helt i skugga och bjuder dig att göra detsamma. Universum håller andan. I denna stillhet talar visdom tystast — och tydligast.",
+     "Druiderna kallade detta 'villans tid' — en helig paus mellan det som var och det som ska komma. Lyssna inåt. En ny cykel är nära."),
+]
+
+def get_moon_phase_data() -> dict:
+    known_new_moon = datetime(2000, 1, 6, 18, 14)
+    lunar_cycle = 29.53058867
+    days_since = (datetime.utcnow() - known_new_moon).total_seconds() / 86400
+    phase = (days_since % lunar_cycle) / lunar_cycle
+    illumination = round((1 - abs(2 * phase - 1)) * 100)
+    if phase < 0.5:
+        mask_cx = round(50 - (2 * phase) * 76, 1)
+    else:
+        mask_cx = round(50 + (2 * (1 - phase)) * 76, 1)
+    for threshold, name, emoji, desc, energy, wisdom in MOON_PHASES:
+        if phase < threshold:
+            return {"phase": round(phase, 4), "name": name, "emoji": emoji,
+                    "desc": desc, "energy": energy, "wisdom": wisdom,
+                    "illumination": illumination, "mask_cx": mask_cx}
+    return {"phase": round(phase, 4), "name": "Avtagande skärmåne", "emoji": "🌘",
+            "desc": MOON_PHASES[-1][3], "energy": MOON_PHASES[-1][4],
+            "wisdom": MOON_PHASES[-1][5], "illumination": illumination, "mask_cx": mask_cx}
+
+CHINESE_ANIMALS = [
+    "Råttan","Oxen","Tigern","Kaninen","Draken","Ormen",
+    "Hästen","Geten","Apan","Tuppen","Hunden","Grisen"
+]
+
+def get_chinese_animal(birth_year: int) -> str:
+    return CHINESE_ANIMALS[(birth_year - 1900) % 12]
+
+def get_life_path_number(day: int, month: int, year: int) -> int:
+    total = sum(int(d) for d in str(day) + str(month) + str(year))
+    while total > 9 and total not in (11, 22, 33):
+        total = sum(int(d) for d in str(total))
+    return total
+
+WEEKLY_SYSTEM = (
+    "Du är JJ Universe — en varm spirituell guide. Svara ALLTID på svenska. "
+    "Tala direkt med 'du'. Poetisk men jordnära. "
+    "Nämn ALDRIG döden, mörker eller skrämmande saker. Döden-kortet = förändring."
+)
+
+WEEKLY_USER_PROMPTS = {
+    "karlek":  lambda c, r: (
+        f"Kortet för veckans kärlek: {c['name_sv']} ({c['name']}){' [OMVÄND]' if r else ''}.\n"
+        "Ge en varm, poetisk tolkning på EXAKT 2 meningar om veckans kärleksenergi. "
+        "Ingen ✦ Råd-rad. Väck nyfikenhet och igenkänning."
+    ),
+    "ekonomi": lambda c, r: (
+        f"Kortet för veckans ekonomi: {c['name_sv']} ({c['name']}){' [OMVÄND]' if r else ''}.\n"
+        "Ge en varm, konkret tolkning på EXAKT 2 meningar om veckans ekonomiska energi. "
+        "Ingen ✦ Råd-rad."
+    ),
+    "energi":  lambda c, r: (
+        f"Kortet för veckans energi: {c['name_sv']} ({c['name']}){' [OMVÄND]' if r else ''}.\n"
+        "Ge en varm tolkning på EXAKT 2 meningar om veckans personliga energi och välmående. "
+        "Ingen ✦ Råd-rad. Poetisk men jordnära."
+    ),
+    "jobb":    lambda c, r: (
+        f"Kortet för veckans jobb: {c['name_sv']} ({c['name']}){' [OMVÄND]' if r else ''}.\n"
+        "Ge ett kort karriärtips på EXAKT 1-2 meningar. Tala direkt med 'du'. Konkret och lockande."
+    ),
+}
+
+
+@app.route("/veckan")
+def veckan():
+    moon = get_moon_phase_data()
+    week = current_week()
+    return render_template("veckan.html", moon=moon, week=week,
+                           stripe_public_key=STRIPE_PUBLIC_KEY)
+
+
+@app.route("/api/weekly-card/<tema>")
+def weekly_card(tema):
+    if tema not in ("karlek", "ekonomi", "energi", "jobb"):
+        return jsonify({"error": "Okänt tema"}), 400
+
+    ip   = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+    week = current_week()
+    cached = get_cached_weekly_card(ip, tema, week)
+
+    def stream_cached(c):
+        import json as _j
+        card = _j.loads(c["card_json"])
+        yield f"data: {json.dumps({'card': card})}\n\n"
+        yield f"data: {json.dumps({'text': c['card_text']})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    if cached:
+        return Response(stream_with_context(stream_cached(cached)),
+                        mimetype="text/event-stream",
+                        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    import random as _r
+    card = _r.choice(TAROT_CARDS).copy()
+    card["reversed"] = _r.random() < 0.3
+
+    user_prompt = WEEKLY_USER_PROMPTS[tema](card, card["reversed"])
+
+    def generate():
+        import json as _j
+        yield f"data: {json.dumps({'card': card})}\n\n"
+        full_text = ""
+        try:
+            with client.messages.stream(
+                model="claude-haiku-4-5",
+                max_tokens=150,
+                system=WEEKLY_SYSTEM,
+                messages=[{"role": "user", "content": user_prompt}]
+            ) as stream:
+                for text in stream.text_stream:
+                    full_text += text
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            save_weekly_card(ip, tema, week, _j.dumps(card), full_text)
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(stream_with_context(generate()),
+                    mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.route("/api/chinese-horoscope")
+def chinese_horoscope():
+    try:
+        birth_year = int(request.args.get("year", 0))
+        if not (1900 <= birth_year <= 2025):
+            return jsonify({"error": "Ogiltigt år"}), 400
+    except ValueError:
+        return jsonify({"error": "Ogiltigt år"}), 400
+
+    animal = get_chinese_animal(birth_year)
+    week   = current_week()
+    cached = get_cached_weekly_extra("chinese", animal, week)
+
+    def stream_cached(text):
+        yield f"data: {json.dumps({'animal': animal})}\n\n"
+        yield f"data: {json.dumps({'text': text})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    if cached:
+        return Response(stream_with_context(stream_cached(cached)),
+                        mimetype="text/event-stream",
+                        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    user_prompt = (
+        f"Det kinesiska djuret är: {animal}. Ge en kort veckotolkning på EXAKT 2 meningar "
+        f"om vad denna vecka bär med sig för {animal}. Poetisk, personlig och lockande. Ingen ✦ Råd-rad."
+    )
+
+    def generate():
+        yield f"data: {json.dumps({'animal': animal})}\n\n"
+        full_text = ""
+        try:
+            with client.messages.stream(
+                model="claude-haiku-4-5",
+                max_tokens=150,
+                system=WEEKLY_SYSTEM,
+                messages=[{"role": "user", "content": user_prompt}]
+            ) as stream:
+                for text in stream.text_stream:
+                    full_text += text
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            save_weekly_extra("chinese", animal, week, full_text)
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(stream_with_context(generate()),
+                    mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.route("/api/numerology")
+def numerology_reading():
+    try:
+        day   = int(request.args.get("day",   0))
+        month = int(request.args.get("month", 0))
+        year  = int(request.args.get("year",  0))
+        if not (1 <= day <= 31 and 1 <= month <= 12 and 1900 <= year <= 2025):
+            return jsonify({"error": "Ogiltigt datum"}), 400
+    except ValueError:
+        return jsonify({"error": "Ogiltigt datum"}), 400
+
+    life_path = get_life_path_number(day, month, year)
+    week      = current_week()
+    cache_key = str(life_path)
+    cached    = get_cached_weekly_extra("numerology", cache_key, week)
+
+    def stream_cached(text):
+        yield f"data: {json.dumps({'life_path': life_path})}\n\n"
+        yield f"data: {json.dumps({'text': text})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    if cached:
+        return Response(stream_with_context(stream_cached(cached)),
+                        mimetype="text/event-stream",
+                        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    user_prompt = (
+        f"Livsvägsnumret är: {life_path}. Ge en kort veckotolkning på EXAKT 2 meningar "
+        f"om vad denna vecka bär med sig för livsvägsnummer {life_path}. "
+        "Poetisk, personlig och lockande. Ingen ✦ Råd-rad."
+    )
+
+    def generate():
+        yield f"data: {json.dumps({'life_path': life_path})}\n\n"
+        full_text = ""
+        try:
+            with client.messages.stream(
+                model="claude-haiku-4-5",
+                max_tokens=150,
+                system=WEEKLY_SYSTEM,
+                messages=[{"role": "user", "content": user_prompt}]
+            ) as stream:
+                for text in stream.text_stream:
+                    full_text += text
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            save_weekly_extra("numerology", cache_key, week, full_text)
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(stream_with_context(generate()),
+                    mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.route("/api/weekly-qa/checkout", methods=["POST"])
+def weekly_qa_checkout():
+    data    = request.get_json()
+    tema    = data.get("tema", "")
+    context = data.get("context", "")
+    if tema not in ("moon", "chinese", "numerology"):
+        return jsonify({"error": "Ogiltigt tema"}), 400
+
+    ip       = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+    base_url = request.host_url.rstrip("/")
+    token    = secrets.token_urlsafe(32)
+
+    labels = {"moon": "Månfasen", "chinese": "Kinesiskt horoskop", "numerology": "Numerologi"}
+    label  = labels[tema]
+
+    checkout = stripe.checkout.Session.create(
+        mode="payment",
+        payment_method_types=["card"],
+        line_items=[{
+            "price_data": {
+                "currency": "sek",
+                "unit_amount": 2000,
+                "product_data": {
+                    "name": f"JJ Universe — 3 Frågor om {label}",
+                    "description": "Ställ 3 personliga frågor om din läsning. Enbart för underhållning.",
+                }
+            },
+            "quantity": 1,
+        }],
+        success_url=base_url + f"/veckan?qa_betald=1&session_id={{CHECKOUT_SESSION_ID}}&tema={tema}",
+        cancel_url=base_url + "/veckan",
+        metadata={"qa_tema": tema, "ip": ip},
+    )
+
+    create_weekly_qa_session(checkout.id, token, tema, context, ip)
+    return jsonify({"url": checkout.url})
+
+
+@app.route("/api/weekly-qa/activate", methods=["POST"])
+def weekly_qa_activate():
+    data       = request.get_json()
+    session_id = data.get("session_id", "")
+    try:
+        cs = stripe.checkout.Session.retrieve(session_id)
+        if cs.payment_status != "paid":
+            return jsonify({"error": "Ej betald"}), 402
+    except Exception:
+        return jsonify({"error": "Stripe-fel"}), 500
+
+    qa = activate_weekly_qa_session(session_id)
+    if not qa:
+        return jsonify({"error": "Session hittades inte"}), 404
+    return jsonify({"token": qa["access_token"], "remaining": 3 - qa["questions_used"], "tema": qa["tema"]})
+
+
+@app.route("/api/weekly-qa/ask", methods=["POST"])
+def weekly_qa_ask():
+    data     = request.get_json()
+    token    = data.get("token", "")
+    question = data.get("question", "")
+    history  = data.get("history", [])
+    context  = data.get("context", "")
+
+    qa = get_weekly_qa_session(token)
+    if not qa:
+        return jsonify({"error": "Ogiltig session"}), 403
+    if qa["questions_used"] >= 3:
+        return jsonify({"error": "limit"}), 403
+
+    use_weekly_qa_question(token)
+
+    messages = []
+    if context:
+        messages.append({"role": "user", "content": f"Kontext från min läsning: {context}"})
+        messages.append({"role": "assistant", "content": "Tack, jag har din läsning i åtanke."})
+    messages.extend(history)
+    messages.append({"role": "user", "content": question})
+
+    def generate():
+        try:
+            with client.messages.stream(
+                model="claude-haiku-4-5",
+                max_tokens=300,
+                system=WEEKLY_SYSTEM,
+                messages=messages
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(stream_with_context(generate()),
+                    mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5001)

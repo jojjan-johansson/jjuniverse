@@ -262,15 +262,6 @@
   {% if tab == 'security' %}
   <h2>Säkerhet</h2>
 
-  {% if alerts %}
-  <div class="alert-banner">
-    <h4>⚠ Säkerhetsvarning</h4>
-    <ul>
-      {% for a in alerts %}<li>{{ a }}</li>{% endfor %}
-    </ul>
-  </div>
-  {% endif %}
-
   <div class="section" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
     <form method="POST" action="/star/cleanup" style="display:flex;gap:10px;align-items:flex-end;">
       <div>
@@ -285,33 +276,17 @@
   </div>
 
   <div class="section">
-    <h3>Misstänkta IP-adresser (misslyckade inlogg)</h3>
-    <table>
-      <tr><th>IP</th><th>Försök</th></tr>
-      {% for f in failed_logins %}
-      <tr>
-        <td>{{ f.ip }}</td>
-        <td style="color:{{ '#ff9090' if f.cnt > 5 else '#ede0ff' }};">{{ f.cnt }}</td>
-      </tr>
-      {% else %}
-      <tr><td colspan="2" style="color:#6650a0;">Inga misslyckade inlogg</td></tr>
-      {% endfor %}
-    </table>
-  </div>
-
-  <div class="section">
     <h3>Senaste säkerhetshändelser</h3>
     <table>
-      <tr><th>Tid</th><th>Typ</th><th>IP</th><th>Detalj</th></tr>
+      <tr><th>Tid</th><th>Typ</th><th>Detalj</th></tr>
       {% for e in events %}
       <tr>
         <td style="color:#9980bb;font-size:0.8rem;white-space:nowrap;">{{ e.created }}</td>
         <td><span class="badge badge-{{ e.type }}">{{ e.type }}</span></td>
-        <td>{{ e.ip }}</td>
         <td style="color:#9980bb;font-size:0.8rem;">{{ e.detail }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="4" style="color:#6650a0;">Inga händelser</td></tr>
+      <tr><td colspan="3" style="color:#6650a0;">Inga händelser</td></tr>
       {% endfor %}
     </table>
   </div>
@@ -324,16 +299,15 @@
     <h3>Godkända villkor ({{ consents|length }} st)</h3>
     <div class="table-wrap">
       <table>
-        <tr><th>Tid</th><th>IP</th><th>E-post</th><th>Version</th></tr>
+        <tr><th>Tid</th><th>E-post</th><th>Version</th></tr>
         {% for c in consents %}
         <tr>
           <td style="color:#9980bb;font-size:0.8rem;white-space:nowrap;">{{ c.created }}</td>
-          <td>{{ c.ip }}</td>
           <td>{{ c.email or '—' }}</td>
           <td style="color:#9980bb;font-size:0.8rem;">{{ c.terms_version }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="4" style="color:#6650a0;">Inga samtycken ännu</td></tr>
+        <tr><td colspan="3" style="color:#6650a0;">Inga samtycken ännu</td></tr>
         {% endfor %}
       </table>
     </div>

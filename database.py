@@ -86,6 +86,39 @@ def init_db():
             created        DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS weekly_cards (
+            ip        TEXT NOT NULL,
+            tema      TEXT NOT NULL,
+            week      TEXT NOT NULL,
+            card_json TEXT NOT NULL,
+            card_text TEXT NOT NULL,
+            created   DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (ip, tema, week)
+        )
+    ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS weekly_extra (
+            tema      TEXT NOT NULL,
+            cache_key TEXT NOT NULL,
+            week      TEXT NOT NULL,
+            content   TEXT NOT NULL,
+            PRIMARY KEY (tema, cache_key, week)
+        )
+    ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS weekly_qa_sessions (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            stripe_session_id TEXT UNIQUE,
+            access_token      TEXT UNIQUE,
+            tema              TEXT,
+            context           TEXT,
+            questions_used    INTEGER DEFAULT 0,
+            status            TEXT DEFAULT 'pending',
+            ip                TEXT,
+            created           DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -150,6 +183,91 @@ def record_free_card_draw(ip: str):
     conn.execute(
         "INSERT OR IGNORE INTO free_card_draws (ip) VALUES (?)",
         (ip,)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_cached_weekly_card(ip: str, tema: str, week: str):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT card_json, card_text FROM weekly_cards WHERE ip=? AND tema=? AND week=?",
+        (ip, tema, week)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def save_weekly_card(ip: str, tema: str, week: str, card_json: str, card_text: str):
+    conn = get_db()
+    conn.execute(
+        "INSERT OR REPLACE INTO weekly_cards (ip, tema, week, card_json, card_text) VALUES (?,?,?,?,?)",
+        (ip, tema, week, card_json, card_text)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_cached_weekly_extra(tema: str, cache_key: str, week: str):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT content FROM weekly_extra WHERE tema=? AND cache_key=? AND week=?",
+        (tema, cache_key, week)
+    ).fetchone()
+    conn.close()
+    return row["content"] if row else None
+
+
+def save_weekly_extra(tema: str, cache_key: str, week: str, content: str):
+    conn = get_db()
+    conn.execute(
+        "INSERT OR REPLACE INTO weekly_extra (tema, cache_key, week, content) VALUES (?,?,?,?)",
+        (tema, cache_key, week, content)
+    )
+    conn.commit()
+    conn.close()
+
+
+def create_weekly_qa_session(stripe_session_id: str, access_token: str, tema: str, context: str, ip: str):
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO weekly_qa_sessions (stripe_session_id, access_token, tema, context, ip, status) VALUES (?,?,?,?,?,'pending')",
+        (stripe_session_id, access_token, tema, context, ip)
+    )
+    conn.commit()
+    conn.close()
+
+
+def activate_weekly_qa_session(stripe_session_id: str):
+    conn = get_db()
+    conn.execute(
+        "UPDATE weekly_qa_sessions SET status='paid' WHERE stripe_session_id=?",
+        (stripe_session_id,)
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT * FROM weekly_qa_sessions WHERE stripe_session_id=?",
+        (stripe_session_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_weekly_qa_session(access_token: str):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM weekly_qa_sessions WHERE access_token=? AND status='paid'",
+        (access_token,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def use_weekly_qa_question(access_token: str):
+    conn = get_db()
+    conn.execute(
+        "UPDATE weekly_qa_sessions SET questions_used = questions_used + 1 WHERE access_token=?",
+        (access_token,)
     )
     conn.commit()
     conn.close()
