@@ -351,21 +351,18 @@ async function buildWeeklyShareImage(tema) {
 }
 
 async function shareWeeklyFB(tema) {
-  const canvas = await buildWeeklyShareImage(tema);
-  canvas.toBlob(async (blob) => {
-    const file = new File([blob], `veckan-${tema}.png`, { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], text: getWeeklyShareText(tema) });
-    } else {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `veckan-${tema}.png`;
-      a.click();
-      setTimeout(() => {
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://jjuniverse.se')}`, '_blank', 'width=600,height=400');
-      }, 500);
-    }
-  }, 'image/png');
+  const text = getWeeklyShareText(tema);
+  const url = 'https://jjuniverse.se';
+  if (navigator.share) {
+    try {
+      await navigator.share({ text, url });
+      return;
+    } catch {}
+  }
+  window.open(
+    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
+    '_blank'
+  );
 }
 
 async function shareWeeklyNative(tema) {
@@ -387,51 +384,63 @@ async function shareWeeklyNative(tema) {
 
 const drawnCards = {};
 
-function drawWeeklyCard(tema) {
+async function drawWeeklyCard(tema) {
   const btn = document.getElementById('btn-' + tema);
   if (btn.disabled) return;
   btn.disabled = true;
   btn.textContent = '✦ Väntar på stjärnorna…';
 
-  const es = new EventSource('/api/weekly-card/' + tema);
   let fullText = '';
   let currentCard = null;
 
-  es.onmessage = (e) => {
-    if (e.data === '[DONE]') {
-      es.close();
-      drawnCards[tema] = currentCard;
-      document.getElementById('reading-' + tema).hidden = false;
-      btn.style.display = 'none';
-      if (currentCard) {
-        document.getElementById('share-' + tema).innerHTML =
-          buildShareBtns(tema);
+  try {
+    const resp = await fetch('/api/weekly-card/' + tema);
+    if (!resp.ok || !resp.body) throw new Error('no body');
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') {
+          drawnCards[tema] = currentCard;
+          document.getElementById('reading-' + tema).hidden = false;
+          btn.style.display = 'none';
+          if (currentCard) {
+            document.getElementById('share-' + tema).innerHTML = buildShareBtns(tema);
+          }
+          return;
+        }
+        try {
+          const d = JSON.parse(data);
+          if (d.card) {
+            currentCard = d.card;
+            const img = document.getElementById('img-' + tema);
+            img.src = '/static/images/cards/' + d.card.image;
+            img.alt = d.card.name_sv;
+            const cardEl = document.getElementById('card-' + tema);
+            if (d.card.reversed) cardEl.classList.add('reversed');
+            setTimeout(() => cardEl.classList.add('flipped'), 100);
+            document.getElementById('name-' + tema).textContent =
+              d.card.name_sv + (d.card.reversed ? ' ↓' : '');
+          } else if (d.text) {
+            fullText += d.text;
+            document.getElementById('text-' + tema).textContent = fullText;
+          }
+        } catch {}
       }
-      return;
     }
-    try {
-      const d = JSON.parse(e.data);
-      if (d.card) {
-        currentCard = d.card;
-        const img = document.getElementById('img-' + tema);
-        img.src = '/static/images/cards/' + d.card.image;
-        img.alt = d.card.name_sv;
-        const cardEl = document.getElementById('card-' + tema);
-        if (d.card.reversed) cardEl.classList.add('reversed');
-        setTimeout(() => cardEl.classList.add('flipped'), 100);
-        document.getElementById('name-' + tema).textContent =
-          d.card.name_sv + (d.card.reversed ? ' ↓' : '');
-      } else if (d.text) {
-        fullText += d.text;
-        document.getElementById('text-' + tema).textContent = fullText;
-      }
-    } catch {}
-  };
-  es.onerror = () => {
-    es.close();
+  } catch {
     btn.disabled = false;
     btn.textContent = '✦ Försök igen';
-  };
+  }
 }
 
 
@@ -444,7 +453,7 @@ async function copyWeekly(btn) {
   setTimeout(() => { btn.innerHTML = orig; }, 2000);
 }
 
-function fetchChinese() {
+async function fetchChinese() {
   const year = parseInt(document.getElementById('chinese-year').value);
   if (!year || year < 1900 || year > 2025) { alert('Ange ett giltigt födelseår (1900–2025)'); return; }
   localStorage.setItem('jj_birth_year', year);
@@ -454,24 +463,37 @@ function fetchChinese() {
   const textEl = document.getElementById('chinese-text');
   textEl.textContent = 'Hämtar ditt horoskop…';
 
-  const es = new EventSource('/api/chinese-horoscope?year=' + year);
-  let fullText = '';
+  try {
+    const resp = await fetch('/api/chinese-horoscope?year=' + year);
+    if (!resp.ok || !resp.body) throw new Error('no body');
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    let fullText = '';
 
-  es.onmessage = (e) => {
-    if (e.data === '[DONE]') { es.close(); return; }
-    try {
-      const d = JSON.parse(e.data);
-      if (d.animal) document.getElementById('chinese-animal').textContent = d.animal;
-      if (d.text) { fullText += d.text; textEl.textContent = fullText; }
-    } catch {}
-  };
-  es.onerror = () => {
-    es.close();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') return;
+        try {
+          const d = JSON.parse(data);
+          if (d.animal) document.getElementById('chinese-animal').textContent = d.animal;
+          if (d.text) { fullText += d.text; textEl.textContent = fullText; }
+        } catch {}
+      }
+    }
+  } catch {
     textEl.textContent = 'Något gick fel. Ladda om sidan och försök igen.';
-  };
+  }
 }
 
-function fetchNumerology() {
+async function fetchNumerology() {
   const day   = parseInt(document.getElementById('num-day').value);
   const month = parseInt(document.getElementById('num-month').value);
   const year  = parseInt(document.getElementById('num-year').value);
@@ -485,28 +507,37 @@ function fetchNumerology() {
   const textEl = document.getElementById('numerology-text');
   textEl.textContent = 'Beräknar ditt livsvägsnummer…';
 
-  const url = `/api/numerology?day=${day}&month=${month}&year=${year}`;
-  const es = new EventSource(url);
-  let fullText = '';
+  try {
+    const resp = await fetch(`/api/numerology?day=${day}&month=${month}&year=${year}`);
+    if (!resp.ok || !resp.body) throw new Error('no body');
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    let fullText = '';
 
-  es.onmessage = (e) => {
-    if (e.data === '[DONE]') { es.close(); return; }
-    try {
-      const d = JSON.parse(e.data);
-      if (d.life_path !== undefined) {
-        document.getElementById('life-path-number').textContent = d.life_path;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') return;
+        try {
+          const d = JSON.parse(data);
+          if (d.life_path !== undefined) {
+            document.getElementById('life-path-number').textContent = d.life_path;
+          }
+          if (d.text) { fullText += d.text; textEl.textContent = fullText; }
+          if (d.error) { textEl.textContent = 'Något gick fel. Försök igen.'; return; }
+        } catch {}
       }
-      if (d.text) { fullText += d.text; textEl.textContent = fullText; }
-      if (d.error) {
-        es.close();
-        textEl.textContent = 'Något gick fel. Försök igen.';
-      }
-    } catch {}
-  };
-  es.onerror = () => {
-    es.close();
+    }
+  } catch {
     textEl.textContent = 'Något gick fel. Ladda om sidan och försök igen.';
-  };
+  }
 }
 
 function openQA(tema, btn) {
